@@ -1,0 +1,887 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Del árbol a su esqueleto — demo conceptual</title>
+<meta name="description" content="Demo interactiva de la idea de tesis: extraer el esqueleto estructural de árboles leñosos a partir de 3D Gaussian Splatting.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,500&family=Space+Mono:wght@400;700&family=Public+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#ECE6D6;
+    --paper-2:#E3DCC7;
+    --ink:#20261D;
+    --ink-soft:#4A5142;
+    --trunk:#9C6435;
+    --trunk-dim:#C9A374;
+    --foliage:#5C7A54;
+    --noise:#948C78;
+    --teal:#255A52;
+    --teal-bright:#3C8477;
+    --warn:#B24A3A;
+    --line:#CFC6AC;
+    --band-bg:#181D16;
+    --band-bg-2:#20261D;
+    --band-line:#3A4030;
+    --band-text:#E7E2D0;
+    --band-text-dim:#9AA08C;
+    --serif: 'Newsreader', Georgia, 'Iowan Old Style', serif;
+    --sans: 'Public Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    --mono: 'Space Mono', 'SFMono-Regular', Consolas, monospace;
+  }
+
+  *{box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{
+    margin:0;
+    background:var(--paper);
+    color:var(--ink);
+    font-family:var(--sans);
+    line-height:1.5;
+    -webkit-font-smoothing:antialiased;
+  }
+  a{color:inherit;}
+  ::selection{background:var(--trunk-dim);color:var(--ink);}
+
+  :focus-visible{
+    outline:2px solid var(--teal);
+    outline-offset:3px;
+  }
+
+  .wrap{max-width:1080px;margin:0 auto;padding:0 28px;}
+  .prose{max-width:640px;}
+
+  /* ---------- Header ---------- */
+  header.hero{padding:76px 0 48px;}
+  .kicker{
+    font-family:var(--mono);
+    font-size:12.5px;
+    color:var(--ink-soft);
+    letter-spacing:0.02em;
+    margin:0 0 22px;
+  }
+  h1{
+    font-family:var(--serif);
+    font-weight:500;
+    font-size:clamp(34px,5.4vw,58px);
+    line-height:1.06;
+    letter-spacing:-0.01em;
+    margin:0 0 22px;
+    max-width:15ch;
+  }
+  h1 em{font-style:italic;font-weight:500;color:var(--trunk);}
+  .subhead{
+    font-size:17px;
+    color:var(--ink-soft);
+    max-width:56ch;
+    margin:0 0 6px;
+  }
+  .meta-line{
+    font-family:var(--mono);
+    font-size:12px;
+    color:var(--ink-soft);
+    margin-top:26px;
+    padding-top:18px;
+    border-top:1px solid var(--line);
+    max-width:640px;
+  }
+
+  /* ---------- Dark instrument band ---------- */
+  .band{
+    background:var(--band-bg);
+    color:var(--band-text);
+    padding:48px 0 56px;
+  }
+  .band .wrap{max-width:1160px;}
+  .band-head{
+    display:flex;
+    flex-wrap:wrap;
+    align-items:baseline;
+    justify-content:space-between;
+    gap:16px;
+    margin-bottom:28px;
+  }
+  .band-title{
+    font-family:var(--serif);
+    font-size:22px;
+    font-weight:500;
+    margin:0;
+  }
+  .regen-btn{
+    font-family:var(--mono);
+    font-size:12px;
+    background:transparent;
+    color:var(--band-text);
+    border:1px solid var(--band-line);
+    padding:9px 14px;
+    border-radius:3px;
+    cursor:pointer;
+    transition:border-color .15s ease, background .15s ease;
+  }
+  .regen-btn:hover{border-color:var(--teal-bright);background:rgba(60,132,119,0.12);}
+
+  .studio{
+    display:grid;
+    grid-template-columns:150px 1fr 240px;
+    gap:0;
+    border:1px solid var(--band-line);
+    border-radius:4px;
+    overflow:hidden;
+  }
+  @media (max-width:860px){
+    .studio{grid-template-columns:1fr;}
+  }
+
+  .mode-rail{
+    background:var(--band-bg-2);
+    border-right:1px solid var(--band-line);
+    display:flex;
+    flex-direction:column;
+  }
+  @media (max-width:860px){
+    .mode-rail{
+      flex-direction:row;
+      border-right:none;
+      border-bottom:1px solid var(--band-line);
+      overflow-x:auto;
+    }
+  }
+  .mode-btn{
+    text-align:left;
+    background:transparent;
+    border:none;
+    border-bottom:1px solid var(--band-line);
+    color:var(--band-text-dim);
+    font-family:var(--sans);
+    font-size:13px;
+    padding:16px 16px;
+    cursor:pointer;
+    display:flex;
+    gap:10px;
+    align-items:flex-start;
+    line-height:1.35;
+  }
+  @media (max-width:860px){
+    .mode-btn{border-bottom:none;border-right:1px solid var(--band-line);white-space:nowrap;flex:0 0 auto;}
+  }
+  .mode-btn .n{font-family:var(--mono);color:var(--band-text-dim);font-size:12px;}
+  .mode-btn.active{background:var(--band-bg);color:var(--band-text);}
+  .mode-btn.active .n{color:var(--teal-bright);}
+  .mode-btn:hover:not(.active){color:var(--band-text);}
+
+  .canvas-col{
+    background:#141812;
+    padding:18px 18px 10px;
+    display:flex;
+    flex-direction:column;
+  }
+  .canvas-box{
+    position:relative;
+    width:100%;
+    aspect-ratio:4/3;
+    border-radius:3px;
+    overflow:hidden;
+    background:#171D16;
+  }
+  canvas{display:block;width:100%;height:100%;}
+  .caption{
+    font-family:var(--mono);
+    font-size:11.5px;
+    color:var(--band-text-dim);
+    margin-top:12px;
+    min-height:2.6em;
+  }
+
+  .control-col{
+    background:var(--band-bg-2);
+    border-left:1px solid var(--band-line);
+    padding:20px 18px 22px;
+    display:flex;
+    flex-direction:column;
+    gap:20px;
+  }
+  @media (max-width:860px){
+    .control-col{border-left:none;border-top:1px solid var(--band-line);}
+  }
+  .ctrl-label{
+    font-family:var(--mono);
+    font-size:11px;
+    color:var(--band-text-dim);
+    display:flex;
+    justify-content:space-between;
+    margin-bottom:8px;
+  }
+  input[type=range]{
+    width:100%;
+    accent-color:var(--teal-bright);
+  }
+  input[type=range]:disabled{opacity:.35;}
+  .hint{font-size:11.5px;color:var(--band-text-dim);margin-top:6px;line-height:1.45;}
+
+  .readout{
+    display:grid;
+    grid-template-columns:1fr;
+    gap:10px;
+    font-family:var(--mono);
+    font-size:12px;
+  }
+  .readout .row{
+    display:flex;
+    justify-content:space-between;
+    gap:8px;
+    padding-bottom:8px;
+    border-bottom:1px solid var(--band-line);
+  }
+  .readout .row:last-child{border-bottom:none;padding-bottom:0;}
+  .readout .k{color:var(--band-text-dim);}
+  .readout .v{color:var(--band-text);text-align:right;}
+  .readout .v.warn{color:#E0A08F;}
+
+  .legend{
+    display:flex;
+    flex-wrap:wrap;
+    gap:14px;
+    margin-top:16px;
+    font-size:12px;
+    color:var(--band-text-dim);
+  }
+  .legend span{display:inline-flex;align-items:center;gap:6px;}
+  .swatch{width:11px;height:11px;border-radius:2px;display:inline-block;}
+
+  /* ---------- Sections ---------- */
+  section.plain{padding:52px 0;}
+  section.plain h2{
+    font-family:var(--serif);
+    font-weight:500;
+    font-size:26px;
+    margin:0 0 16px;
+  }
+  section.plain p{color:var(--ink-soft);}
+
+  /* ---------- Timeline ---------- */
+  .timeline{
+    padding:56px 0 64px;
+    border-top:1px solid var(--line);
+  }
+  .timeline h2{
+    font-family:var(--serif);
+    font-weight:500;
+    font-size:26px;
+    margin:0 0 8px;
+  }
+  .timeline > .wrap > p.prose{margin-bottom:38px;}
+  .tl-list{
+    display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(210px,1fr));
+    gap:0;
+    border-top:1px solid var(--line);
+  }
+  .tl-item{
+    padding:20px 20px 22px 0;
+    border-bottom:1px solid var(--line);
+    position:relative;
+  }
+  .tl-item .num{
+    font-family:var(--mono);
+    font-size:12px;
+    color:var(--trunk);
+  }
+  .tl-item h3{
+    font-family:var(--serif);
+    font-weight:500;
+    font-size:17px;
+    margin:8px 0 8px;
+  }
+  .tl-item p{
+    font-size:13.5px;
+    color:var(--ink-soft);
+    margin:0;
+  }
+  .tl-item.demoed{ }
+  .tl-item.demoed .num::after{
+    content:" · en la demo";
+    color:var(--ink-soft);
+    font-size:10.5px;
+  }
+
+  footer{
+    border-top:1px solid var(--line);
+    padding:36px 0 54px;
+  }
+  footer p{
+    font-size:12.5px;
+    color:var(--ink-soft);
+    max-width:640px;
+    margin:0 0 6px;
+  }
+  footer .sig{
+    font-family:var(--mono);
+    font-size:11.5px;
+    color:var(--ink-soft);
+    margin-top:18px;
+  }
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="wrap">
+    <p class="kicker">Propuesta de tesis doctoral · demostración conceptual</p>
+    <h1>No hace falta cortar<br>el árbol para <em>leer</em><br>su esqueleto.</h1>
+    <p class="subhead">
+      Esta página ilustra, con un árbol sintético, la idea central de la propuesta:
+      reconstruir un cultivo leñoso con 3D Gaussian Splatting y usar la forma de cada
+      gaussiana &mdash;no solo su posición&mdash; para separar la madera del follaje,
+      reconstruir el esqueleto y extraer variables estructurales sin tocar la planta.
+    </p>
+    <p class="meta-line">
+      Non-destructive structural characterization of woody crops through tree skeleton
+      extraction from 3D Gaussian Splatting · Fundación Ramón Areces, Ciencias de la
+      Vida y de la Materia 2026
+    </p>
+  </div>
+</header>
+
+<section class="band" id="demo">
+  <div class="wrap">
+    <div class="band-head">
+      <h2 class="band-title">Laboratorio de esqueletización</h2>
+      <button class="regen-btn" id="regen">↻ generar otro árbol</button>
+    </div>
+
+    <div class="studio">
+      <div class="mode-rail" id="modeRail">
+        <button class="mode-btn active" data-mode="0"><span class="n">01</span><span>Gaussianas 3D</span></button>
+        <button class="mode-btn" data-mode="1"><span class="n">02</span><span>Clasificación estructural</span></button>
+        <button class="mode-btn" data-mode="2"><span class="n">03</span><span>Esqueleto</span></button>
+        <button class="mode-btn" data-mode="3"><span class="n">04</span><span>Variables extraídas</span></button>
+      </div>
+
+      <div class="canvas-col">
+        <div class="canvas-box">
+          <canvas id="tree" width="800" height="600" role="img" aria-label="Visualización interactiva de un árbol sintético reconstruido como gaussianas 3D, su clasificación estructural y su esqueleto extraído."></canvas>
+        </div>
+        <p class="caption" id="caption"></p>
+      </div>
+
+      <div class="control-col">
+        <div>
+          <div class="ctrl-label"><span>Umbral de anisotropía</span><span id="threshVal">0.45</span></div>
+          <input type="range" id="thresh" min="0" max="1" step="0.01" value="0.45">
+          <p class="hint" id="threshHint">Sube el umbral y las ramas finas empiezan a perderse; bájalo y hojas o ruido se cuelan como si fueran madera.</p>
+        </div>
+
+        <div class="readout" id="readout"></div>
+
+        <div class="legend" id="legend"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="plain">
+  <div class="wrap">
+    <div class="prose">
+      <h2>El problema, en una frase</h2>
+      <p>
+        Medir la arquitectura de un árbol &mdash;diámetros, longitudes, conectividad de
+        ramas&mdash; hoy exige escáneres costosos o nubes de puntos que se fragmentan
+        justo donde más importa: en las ramas delgadas y las zonas ocultas por el
+        follaje. La propuesta explora si los propios atributos geométricos de una
+        reconstrucción por Gaussian Splatting &mdash;escala, orientación, anisotropía&mdash;
+        bastan para reconstruir esa estructura de forma no destructiva.
+      </p>
+    </div>
+  </div>
+</section>
+
+<section class="timeline">
+  <div class="wrap">
+    <h2>Siete fases, un flujo</h2>
+    <p class="prose">
+      La metodología completa encadena siete fases, de la adquisición en campo a la
+      evaluación de utilidad para biomasa, fenotipado y poda. La demo de arriba
+      reproduce, de forma simplificada, las fases 2 a 5.
+    </p>
+    <div class="tl-list">
+      <div class="tl-item"><span class="num">01</span><h3>Adquisición</h3><p>Imágenes o LiDAR desde UAV o a pie de campo, según el cultivo y el terreno.</p></div>
+      <div class="tl-item demoed"><span class="num">02</span><h3>Reconstrucción 3DGS</h3><p>Cada gaussiana guarda posición, escala, orientación, opacidad y anisotropía.</p></div>
+      <div class="tl-item demoed"><span class="num">03</span><h3>Gaussianas estructurales</h3><p>Se separa la madera &mdash;tronco y ramas&mdash; del follaje y del ruido de reconstrucción.</p></div>
+      <div class="tl-item demoed"><span class="num">04</span><h3>Esqueletización</h3><p>Las gaussianas de madera se conectan en un grafo con nodos, radios y conectividad.</p></div>
+      <div class="tl-item demoed"><span class="num">05</span><h3>Extracción de variables</h3><p>Altura, diámetro, longitud, orientación y volumen, calculados sobre el esqueleto.</p></div>
+      <div class="tl-item"><span class="num">06</span><h3>Validación</h3><p>Precisión geométrica y topológica frente a mediciones y esqueletos de referencia.</p></div>
+      <div class="tl-item"><span class="num">07</span><h3>Evaluación de utilidad</h3><p>¿Sirven estas variables para biomasa y carbono, fenotipado o poda de precisión?</p></div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <p>
+      Esta demo usa un árbol sintético generado en el navegador &mdash;no datos reales
+      ni la implementación final de la tesis&mdash; y sirve únicamente para ilustrar
+      la idea metodológica de forma interactiva. Las cifras del panel son ilustrativas.
+    </p>
+    <p class="sig">Joan Manuel Moreno Rojas · Tutor: João Ricardo Pereira Valente</p>
+  </div>
+</footer>
+
+<script>
+(function(){
+  "use strict";
+
+  // ---------- PRNG ----------
+  function mulberry32(a){
+    return function(){
+      a |= 0; a = (a + 0x6D2B79F5) | 0;
+      var t = Math.imul(a ^ (a >>> 15), 1 | a);
+      t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  }
+
+  // ---------- Constants ----------
+  var HEIGHT_SCALE = 4.47;   // meters per normalized vertical unit
+  var RADIUS_SCALE = 2.27;   // meters per normalized radius unit
+
+  var ANISO_RANGE = [
+    [0.85,0.97],[0.68,0.86],[0.50,0.72],[0.35,0.56],[0.22,0.42],[0.14,0.30]
+  ];
+
+  // ---------- Tree generation ----------
+  function generateTree(seed){
+    var rng = mulberry32(seed);
+    var segments = [];
+    var foliage = [];
+    var noise = [];
+    var idc = 0;
+
+    function anisoFor(depth){
+      var r = ANISO_RANGE[Math.min(depth, ANISO_RANGE.length-1)];
+      return r[0] + rng()*(r[1]-r[0]);
+    }
+
+    function branch(x,y,angle,length,radius,depth,parentId){
+      var x2 = x + Math.cos(angle)*length;
+      var y2 = y + Math.sin(angle)*length;
+      var id = idc++;
+      segments.push({
+        id:id, parentId:(parentId===undefined?-1:parentId),
+        x1:x,y1:y,x2:x2,y2:y2,
+        radius:radius, length:length, depth:depth,
+        anisotropy:anisoFor(depth)
+      });
+
+      var maxDepth = 5;
+      var tooThin = radius < 0.0035 || length < 0.018;
+
+      if(depth < maxDepth && !tooThin){
+        var nBranches = (depth===0) ? 1 : (rng() < 0.82 ? 2 : 1);
+        var spread = 0.34 + rng()*0.30;
+        for(var i=0;i<nBranches;i++){
+          var sign = nBranches===1 ? (rng()<0.5?-1:1) : (i===0?-1:1);
+          var jitter = (rng()-0.5)*0.22;
+          var newAngle = angle + sign*spread + jitter;
+          var newLength = length * (0.66 + rng()*0.14);
+          var newRadius = radius * (0.60 + rng()*0.14);
+          branch(x2,y2,newAngle,newLength,newRadius,depth+1,id);
+        }
+      } else {
+        var clusterN = 3 + Math.floor(rng()*4);
+        for(var f=0; f<clusterN; f++){
+          var fr = 0.02 + rng()*0.045;
+          var fa = rng()*Math.PI*2;
+          foliage.push({
+            x: x2 + Math.cos(fa)*fr,
+            y: y2 + Math.sin(fa)*fr,
+            r: 0.012 + rng()*0.014,
+            anisotropy: 0.02 + rng()*0.22
+          });
+        }
+      }
+    }
+
+    branch(0.5, 0.95, -Math.PI/2 + (rng()-0.5)*0.05, 0.40 + rng()*0.05, 0.052 + rng()*0.01, 0, -1);
+
+    // Fit the generated crown inside a safe margin so it never spills
+    // outside the canvas, whatever shape the random branching produced.
+    (function fitToCanvas(){
+      var anchorX = 0.5, anchorY = 0.95;
+      var minX = anchorX, maxX = anchorX, minY = anchorY;
+
+      segments.forEach(function(s){
+        minX = Math.min(minX, s.x1, s.x2); maxX = Math.max(maxX, s.x1, s.x2);
+        minY = Math.min(minY, s.y1, s.y2);
+      });
+      foliage.forEach(function(g){
+        minX = Math.min(minX, g.x - g.r); maxX = Math.max(maxX, g.x + g.r);
+        minY = Math.min(minY, g.y - g.r);
+      });
+
+      var leftRoom = anchorX - 0.08, rightRoom = 0.92 - anchorX, topRoom = anchorY - 0.08;
+      var scale = 1;
+      if (maxX > anchorX) scale = Math.min(scale, rightRoom / (maxX - anchorX));
+      if (minX < anchorX) scale = Math.min(scale, leftRoom / (anchorX - minX));
+      if (minY < anchorY) scale = Math.min(scale, topRoom / (anchorY - minY));
+
+      if (scale < 1){
+        segments.forEach(function(s){
+          s.x1 = anchorX + (s.x1 - anchorX) * scale;
+          s.x2 = anchorX + (s.x2 - anchorX) * scale;
+          s.y1 = anchorY + (s.y1 - anchorY) * scale;
+          s.y2 = anchorY + (s.y2 - anchorY) * scale;
+          s.radius *= scale;
+          s.length *= scale;
+        });
+        foliage.forEach(function(g){
+          g.x = anchorX + (g.x - anchorX) * scale;
+          g.y = anchorY + (g.y - anchorY) * scale;
+          g.r *= scale;
+        });
+      }
+    })();
+
+    var nNoise = 12 + Math.floor(rng()*8);
+    for(var n=0;n<nNoise;n++){
+      noise.push({
+        x: 0.16 + rng()*0.68,
+        y: 0.14 + rng()*0.55,
+        r: 0.010 + rng()*0.014,
+        anisotropy: 0.26 + rng()*0.28
+      });
+    }
+
+    var byId = {};
+    var childrenOf = {};
+    segments.forEach(function(s){
+      byId[s.id]=s;
+      if(!childrenOf[s.parentId]) childrenOf[s.parentId]=[];
+      childrenOf[s.parentId].push(s.id);
+    });
+
+    return {segments:segments, foliage:foliage, noise:noise, byId:byId, childrenOf:childrenOf};
+  }
+
+  // ---------- Connectivity / variables ----------
+  function computeReachable(tree, threshold){
+    var reachable = {};
+    var root = tree.childrenOf[-1] ? tree.byId[tree.childrenOf[-1][0]] : null;
+    if(!root) return reachable;
+    var stack = [];
+    if(root.anisotropy >= threshold){
+      reachable[root.id]=true;
+      stack.push(root.id);
+    }
+    while(stack.length){
+      var id = stack.pop();
+      var kids = tree.childrenOf[id] || [];
+      kids.forEach(function(cid){
+        var c = tree.byId[cid];
+        if(c.anisotropy >= threshold){
+          reachable[cid]=true;
+          stack.push(cid);
+        }
+      });
+    }
+    return reachable;
+  }
+
+  function computeVariables(tree, threshold){
+    var reachable = computeReachable(tree, threshold);
+    var reachIds = Object.keys(reachable);
+    var totalLen = 0, totalVol = 0, minY = 0.95, count = 0;
+
+    reachIds.forEach(function(idStr){
+      var s = tree.byId[idStr];
+      count++;
+      totalLen += s.length;
+      var rM = s.radius*RADIUS_SCALE;
+      var lM = s.length*HEIGHT_SCALE;
+      totalVol += Math.PI*rM*rM*lM;
+      minY = Math.min(minY, s.y1, s.y2);
+    });
+
+    var heightM = count>0 ? (0.95 - minY)*HEIGHT_SCALE : 0;
+    var lengthM = totalLen*HEIGHT_SCALE;
+    var volumeL = totalVol*1000;
+    var coverage = tree.segments.length ? (count/tree.segments.length*100) : 0;
+
+    var root = tree.childrenOf[-1] ? tree.byId[tree.childrenOf[-1][0]] : null;
+    var baseDiamCm = root ? root.radius*RADIUS_SCALE*2*100 : 0;
+
+    var fpItems = tree.foliage.concat(tree.noise);
+    var fpCount = fpItems.filter(function(g){return g.anisotropy>=threshold;}).length;
+    var fpPct = fpItems.length ? (fpCount/fpItems.length*100) : 0;
+
+    var orphanCount = 0;
+    tree.segments.forEach(function(s){
+      if(s.anisotropy>=threshold && !reachable[s.id]) orphanCount++;
+    });
+
+    return {
+      reachable:reachable, branchCount:count, heightM:heightM, lengthM:lengthM,
+      volumeL:volumeL, coverage:coverage, baseDiamCm:baseDiamCm,
+      fpPct:fpPct, orphanCount:orphanCount
+    };
+  }
+
+  // ---------- Drawing helpers ----------
+  function drawEllipseSeg(ctx, s, W, H, fill, alpha, minWidth){
+    var x1=s.x1*W, y1=s.y1*H, x2=s.x2*W, y2=s.y2*H;
+    var mx=(x1+x2)/2, my=(y1+y2)/2;
+    var dx=x2-x1, dy=y2-y1;
+    var len = Math.sqrt(dx*dx+dy*dy);
+    var ang = Math.atan2(dy,dx);
+    var elong = 0.55 + s.anisotropy*0.55;
+    var lengthPx = Math.max(len*elong, 6);
+    var widthPx = Math.max(s.radius*H*2*(1.15-s.anisotropy*0.35), minWidth||3);
+
+    ctx.save();
+    ctx.translate(mx,my);
+    ctx.rotate(ang);
+    ctx.globalAlpha = alpha;
+    ctx.fillStyle = fill;
+    ctx.beginPath();
+    ctx.ellipse(0,0,lengthPx/2,widthPx/2,0,0,Math.PI*2);
+    ctx.fill();
+    ctx.restore();
+  }
+
+  function drawDot(ctx, g, W, H, fill, alpha){
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    ctx.fillStyle = fill;
+    ctx.beginPath();
+    ctx.ellipse(g.x*W, g.y*H, g.r*W*1.2*(0.6+g.anisotropy*0.3), g.r*H*0.9, 0, 0, Math.PI*2);
+    ctx.fill();
+    ctx.restore();
+  }
+
+  // ---------- App state ----------
+  var canvas = document.getElementById('tree');
+  var ctx = canvas.getContext('2d');
+  var threshSlider = document.getElementById('thresh');
+  var threshVal = document.getElementById('threshVal');
+  var threshHint = document.getElementById('threshHint');
+  var caption = document.getElementById('caption');
+  var readoutEl = document.getElementById('readout');
+  var legendEl = document.getElementById('legend');
+  var modeButtons = Array.prototype.slice.call(document.querySelectorAll('.mode-btn'));
+  var regenBtn = document.getElementById('regen');
+
+  var state = {
+    mode: 0,
+    threshold: 0.45,
+    tree: generateTree(Math.floor(Math.random()*1e9))
+  };
+
+  var COLORS = {
+    trunkOn: '#C9A374',
+    trunkOff: 'rgba(207,198,172,0.16)',
+    foliage: 'rgba(110,145,100,0.55)',
+    noise: 'rgba(160,150,130,0.42)',
+    warn: '#C7735F',
+    teal: '#3C8477',
+    ghost: 'rgba(220,214,192,0.10)'
+  };
+
+  function fitCanvas(){
+    var box = canvas.parentElement;
+    var rect = box.getBoundingClientRect();
+    var dpr = window.devicePixelRatio || 1;
+    canvas.width = Math.round(rect.width*dpr);
+    canvas.height = Math.round(rect.height*dpr);
+    ctx.setTransform(dpr,0,0,dpr,0,0);
+    render();
+  }
+
+  function clear(){
+    var W = canvas.clientWidth, H = canvas.clientHeight;
+    ctx.clearRect(0,0,W,H);
+    ctx.fillStyle = '#171D16';
+    ctx.fillRect(0,0,W,H);
+  }
+
+  function render(){
+    var W = canvas.clientWidth, H = canvas.clientHeight;
+    clear();
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(0,0,W,H);
+    ctx.clip();
+    var tree = state.tree;
+    var th = state.threshold;
+
+    if(state.mode===0){
+      tree.segments.forEach(function(s){ drawEllipseSeg(ctx,s,W,H,'#CFC6AC',0.42,3); });
+      tree.foliage.forEach(function(g){ drawDot(ctx,g,W,H,COLORS.foliage,0.55); });
+      tree.noise.forEach(function(g){ drawDot(ctx,g,W,H,COLORS.noise,0.45); });
+    }
+
+    if(state.mode===1){
+      tree.segments.forEach(function(s){
+        if(s.anisotropy>=th){ drawEllipseSeg(ctx,s,W,H,COLORS.trunkOn,0.92,3); }
+        else { drawEllipseSeg(ctx,s,W,H,'#DCD6C0',0.16,2); }
+      });
+      tree.foliage.concat(tree.noise).forEach(function(g){
+        if(g.anisotropy>=th){ drawDot(ctx,g,W,H,COLORS.warn,0.85); }
+        else { drawDot(ctx,g,W,H, g.r<0.02? COLORS.foliage:COLORS.noise, 0.4); }
+      });
+    }
+
+    if(state.mode===2 || state.mode===3){
+      tree.segments.forEach(function(s){ drawEllipseSeg(ctx,s,W,H,COLORS.ghost,1,2); });
+      var reach = computeReachable(tree, th);
+      tree.segments.forEach(function(s){
+        var isReach = !!reach[s.id];
+        var isDetectedOnly = s.anisotropy>=th && !isReach;
+        if(isDetectedOnly){
+          ctx.save();
+          ctx.strokeStyle = 'rgba(60,132,119,0.55)';
+          ctx.setLineDash([4,4]);
+          ctx.lineWidth = Math.max(1.4, s.radius*H*1.4);
+          ctx.beginPath();
+          ctx.moveTo(s.x1*W,s.y1*H);
+          ctx.lineTo(s.x2*W,s.y2*H);
+          ctx.stroke();
+          ctx.restore();
+        }
+      });
+      tree.segments.forEach(function(s){
+        if(!reach[s.id]) return;
+        ctx.save();
+        ctx.strokeStyle = COLORS.teal;
+        ctx.lineCap = 'round';
+        ctx.lineWidth = Math.max(2.2, s.radius*H*1.9);
+        ctx.beginPath();
+        ctx.moveTo(s.x1*W,s.y1*H);
+        ctx.lineTo(s.x2*W,s.y2*H);
+        ctx.stroke();
+        ctx.restore();
+      });
+      tree.segments.forEach(function(s){
+        if(!reach[s.id]) return;
+        ctx.save();
+        ctx.fillStyle = '#EAF2EE';
+        ctx.beginPath();
+        ctx.ellipse(s.x2*W, s.y2*H, 2.6, 2.6, 0, 0, Math.PI*2);
+        ctx.fill();
+        ctx.restore();
+      });
+
+      if(state.mode===3){
+        var vars = computeVariables(tree, th);
+        var root = tree.childrenOf[-1] ? tree.byId[tree.childrenOf[-1][0]] : null;
+        if(root){
+          var baseX = root.x1*W, baseY = root.y1*H;
+          var topY = baseY - vars.heightM/HEIGHT_SCALE*H;
+          var lineX = Math.max(30, baseX - W*0.30);
+          ctx.save();
+          ctx.strokeStyle = 'rgba(231,226,208,0.55)';
+          ctx.fillStyle = 'rgba(231,226,208,0.85)';
+          ctx.lineWidth = 1;
+          ctx.beginPath();
+          ctx.moveTo(lineX, baseY);
+          ctx.lineTo(lineX, topY);
+          ctx.moveTo(lineX-5, baseY); ctx.lineTo(lineX+5, baseY);
+          ctx.moveTo(lineX-5, topY); ctx.lineTo(lineX+5, topY);
+          ctx.stroke();
+          ctx.font = '11px "Space Mono", monospace';
+          ctx.save();
+          ctx.translate(lineX-10, (baseY+topY)/2);
+          ctx.rotate(-Math.PI/2);
+          ctx.textAlign = 'center';
+          ctx.fillText('altura ≈ '+vars.heightM.toFixed(1)+' m', 0, 0);
+          ctx.restore();
+
+          ctx.beginPath();
+          var dPx = vars.baseDiamCm/100/RADIUS_SCALE*H*0.5;
+          ctx.moveTo(baseX-dPx, baseY+14);
+          ctx.lineTo(baseX+dPx, baseY+14);
+          ctx.stroke();
+          ctx.textAlign = 'center';
+          ctx.fillText('Ø base ≈ '+vars.baseDiamCm.toFixed(0)+' cm', baseX, baseY+28);
+          ctx.restore();
+        }
+      }
+    }
+    ctx.restore();
+  }
+
+  function updateReadout(){
+    var vars = computeVariables(state.tree, state.threshold);
+    var rows = [
+      ['Ramas reconectadas', vars.branchCount + ' / ' + state.tree.segments.length],
+      ['Cobertura de la estructura', vars.coverage.toFixed(0)+'%'],
+      ['Altura estimada', vars.heightM.toFixed(2)+' m'],
+      ['Longitud total', vars.lengthM.toFixed(1)+' m'],
+      ['Diámetro de base', vars.baseDiamCm.toFixed(1)+' cm'],
+      ['Volumen aproximado', vars.volumeL.toFixed(1)+' L'],
+      ['Fragmentos huérfanos', String(vars.orphanCount)],
+      ['Falsos positivos (hoja/ruido)', vars.fpPct.toFixed(0)+'%']
+    ];
+    readoutEl.innerHTML = rows.map(function(r){
+      var warn = (r[0].indexOf('Falsos')===0 && vars.fpPct>15) || (r[0].indexOf('huérfanos')>-1 && vars.orphanCount>3);
+      return '<div class="row"><span class="k">'+r[0]+'</span><span class="v'+(warn?' warn':'')+'">'+r[1]+'</span></div>';
+    }).join('');
+  }
+
+  var CAPTIONS = [
+    'Fase 2 — Reconstrucción 3DGS. Aún no se distingue madera de follaje: todo es una nube densa de gaussianas.',
+    'Fase 3 — Identificación de gaussianas estructurales. El umbral de anisotropía decide qué gaussiana cuenta como madera; el rojo marca hoja o ruido detectados por error.',
+    'Fase 4 — Esqueletización. Solo las gaussianas conectadas desde el tronco forman el esqueleto; el resto queda huérfano o descartado.',
+    'Fase 5 — Extracción de variables. Altura, diámetro y volumen se calculan sobre el esqueleto reconstruido, no sobre el árbol real.'
+  ];
+
+  var LEGENDS = [
+    [['#CFC6AC','Gaussianas de madera'], [COLORS.foliage,'Follaje'], [COLORS.noise,'Ruido de reconstrucción']],
+    [[COLORS.trunkOn,'Detectado como madera'], ['#DCD6C0','No detectado (bajo el umbral)'], [COLORS.warn,'Falso positivo']],
+    [[COLORS.teal,'Esqueleto conectado'], ['rgba(60,132,119,0.7)','Fragmento huérfano'], [COLORS.ghost,'Descartado']],
+    [[COLORS.teal,'Esqueleto'], ['#E7E2D0','Medida derivada']]
+  ];
+
+  function updateChrome(){
+    caption.textContent = CAPTIONS[state.mode];
+    legendEl.innerHTML = LEGENDS[state.mode].map(function(l){
+      return '<span><span class="swatch" style="background:'+l[0]+'"></span>'+l[1]+'</span>';
+    }).join('');
+    threshSlider.disabled = state.mode===0;
+    threshHint.style.opacity = state.mode===0 ? 0.4 : 1;
+  }
+
+  function setMode(m){
+    state.mode = m;
+    modeButtons.forEach(function(b){ b.classList.toggle('active', Number(b.dataset.mode)===m); });
+    updateChrome();
+    render();
+  }
+
+  modeButtons.forEach(function(b){
+    b.addEventListener('click', function(){ setMode(Number(b.dataset.mode)); });
+  });
+
+  threshSlider.addEventListener('input', function(){
+    state.threshold = Number(threshSlider.value);
+    threshVal.textContent = state.threshold.toFixed(2);
+    render();
+    updateReadout();
+  });
+
+  regenBtn.addEventListener('click', function(){
+    state.tree = generateTree(Math.floor(Math.random()*1e9));
+    render();
+    updateReadout();
+  });
+
+  window.addEventListener('resize', fitCanvas);
+
+  threshVal.textContent = state.threshold.toFixed(2);
+  updateChrome();
+  fitCanvas();
+  updateReadout();
+})();
+</script>
+</body>
+</html>
