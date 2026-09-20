@@ -333,7 +333,7 @@
     <p class="subhead">
       Esta página ilustra, con un árbol sintético, la idea central de la propuesta:
       reconstruir un cultivo leñoso con 3D Gaussian Splatting y usar la forma de cada
-      gaussiana &mdash;no solo su posición&mdash; para separar la madera del follaje,
+      gaussiana para separar la madera del follaje,
       reconstruir el esqueleto y extraer variables estructurales sin tocar la planta.
     </p>
     <p class="meta-line">
@@ -347,7 +347,7 @@
 <section class="band" id="demo">
   <div class="wrap">
     <div class="band-head">
-      <h2 class="band-title">Laboratorio de esqueletización</h2>
+      <h2 class="band-title">Demostración Interactiva</h2>
       <button class="regen-btn" id="regen">↻ generar otro árbol</button>
     </div>
 
@@ -386,12 +386,9 @@
     <div class="prose">
       <h2>El problema, en una frase</h2>
       <p>
-        Medir la arquitectura de un árbol &mdash;diámetros, longitudes, conectividad de
-        ramas&mdash; hoy exige escáneres costosos o nubes de puntos que se fragmentan
-        justo donde más importa: en las ramas delgadas y las zonas ocultas por el
-        follaje. La propuesta explora si los propios atributos geométricos de una
-        reconstrucción por Gaussian Splatting &mdash;escala, orientación, anisotropía&mdash;
-        bastan para reconstruir esa estructura de forma no destructiva.
+Los métodos actuales para caracterizar la estructura de los cultivos leñosos requieren costosos sistemas de detección 3D o dependen de nubes de puntos reconstruidas que pueden estar incompletas o fragmentadas 
+alrededor de ramas delgadas y estructuras ocluidas. Al mismo tiempo, las mediciones de plantas convencionales proporcionan información estructural limitada y a menudo requieren un trabajo manual intensivo e invasivo. 
+Esto limita el desarrollo de enfoques no destructivos, escalables y cuantitativos para monitorear y gestionar los sistemas agrícolas leñosos.
       </p>
     </div>
   </div>
@@ -420,11 +417,11 @@
 <footer>
   <div class="wrap">
     <p>
-      Esta demo usa un árbol sintético generado en el navegador &mdash;no datos reales
-      ni la implementación final de la tesis&mdash; y sirve únicamente para ilustrar
+      Esta demo usa un árbol sintético generado en el navegador, no datos reales
+      ni la implementación final de la tesis; sirve únicamente para ilustrar
       la idea metodológica de forma interactiva. Las cifras del panel son ilustrativas.
     </p>
-    <p class="sig">Joan Manuel Moreno Rojas · Tutor: João Ricardo Pereira Valente</p>
+    <p class="sig">Joan Manuel Moreno Rojas · Director: João Ricardo Pereira Valente</p>
   </div>
 </footer>
 
