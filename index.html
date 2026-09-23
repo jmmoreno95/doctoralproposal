@@ -1,884 +1,880 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Del árbol a su esqueleto — demo conceptual</title>
-<meta name="description" content="Demo interactiva de la idea de tesis: extraer el esqueleto estructural de árboles leñosos a partir de 3D Gaussian Splatting.">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Medir el carbono de un árbol sin talarlo — Demo de la propuesta doctoral</title>
+<meta name="description" content="Demostración interactiva: reconstrucción 3D con 3D Gaussian Splatting, esqueletización y estimación no destructiva de biomasa y carbono en almendro y pistacho.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🌳</text></svg>">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,500&family=Space+Mono:wght@400;700&family=Public+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,400;0,500;0,600;1,400&family=Work+Sans:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
-  :root{
-    --paper:#ECE6D6;
-    --paper-2:#E3DCC7;
-    --ink:#20261D;
-    --ink-soft:#4A5142;
-    --trunk:#9C6435;
-    --trunk-dim:#C9A374;
-    --foliage:#5C7A54;
-    --noise:#948C78;
-    --teal:#255A52;
-    --teal-bright:#3C8477;
-    --warn:#B24A3A;
-    --line:#CFC6AC;
-    --band-bg:#181D16;
-    --band-bg-2:#20261D;
-    --band-line:#3A4030;
-    --band-text:#E7E2D0;
-    --band-text-dim:#9AA08C;
-    --serif: 'Newsreader', Georgia, 'Iowan Old Style', serif;
-    --sans: 'Public Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-    --mono: 'Space Mono', 'SFMono-Regular', Consolas, monospace;
-  }
+:root{
+  --paper:#F2F4EF; --paper-2:#E7EBE3; --ink:#1D2B24; --ink-2:#4B5B52; --rule:#CFD7CB;
+  --view:#15201A; --bark:#9A6A45; --pist:#A7C957; --blossom:#F4B6C2; --teal:#2E7D6B;
+  --flag:#D1495B; --lilac:#B9B3C9;
+  --serif:"Spectral", Georgia, "Times New Roman", serif;
+  --sans:"Work Sans", "Segoe UI", system-ui, -apple-system, Roboto, Arial, sans-serif;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+@media (prefers-reduced-motion: reduce){html{scroll-behavior:auto}}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--serif);font-size:18px;line-height:1.6;-webkit-font-smoothing:antialiased}
+a{color:var(--teal)}
+:focus-visible{outline:3px solid var(--teal);outline-offset:2px}
 
-  *{box-sizing:border-box;}
-  html{scroll-behavior:smooth;}
-  body{
-    margin:0;
-    background:var(--paper);
-    color:var(--ink);
-    font-family:var(--sans);
-    line-height:1.5;
-    -webkit-font-smoothing:antialiased;
-  }
-  a{color:inherit;}
-  ::selection{background:var(--trunk-dim);color:var(--ink);}
+/* top bar */
+.top{position:sticky;top:0;z-index:20;background:rgba(242,244,239,.94);backdrop-filter:blur(6px);border-bottom:1px solid var(--rule);
+  padding:calc(env(safe-area-inset-top,0px) + 10px) 24px 10px;display:flex;gap:24px;align-items:baseline;justify-content:space-between;font-family:var(--sans);font-size:14px}
+.top b{font-weight:600}
+.top nav{display:flex;gap:18px;flex-wrap:wrap}
+.top nav a{color:var(--ink-2);text-decoration:none}
+.top nav a:hover{color:var(--ink);text-decoration:underline}
 
-  :focus-visible{
-    outline:2px solid var(--teal);
-    outline-offset:3px;
-  }
+/* story: sticky stage + steps */
+.story{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(340px,.85fr);gap:0}
+.stage{position:sticky;top:49px;height:calc(100vh - 49px);background:var(--view);overflow:hidden}
+.stage canvas{display:block;width:100%;height:100%;touch-action:pan-y;cursor:grab}
+.stage canvas:active{cursor:grabbing}
+.stage .phase{position:absolute;left:20px;top:16px;font-family:var(--sans);font-size:13px;color:#DDE5D8;letter-spacing:.01em}
+.stage .phase strong{display:block;font-family:var(--serif);font-size:22px;font-weight:500;color:#F4F7F1}
+.stage .legend{position:absolute;left:20px;bottom:16px;display:flex;flex-wrap:wrap;gap:6px 16px;font-family:var(--sans);font-size:13px;color:#DDE5D8;max-width:calc(100% - 40px)}
+.stage .legend span{display:inline-flex;align-items:center;gap:7px}
+.stage .legend i{width:11px;height:11px;border-radius:50%;display:inline-block}
+.stage .legend i.dash{border-radius:0;height:0;width:16px;border-top:2px dashed #9AA59D}
+.stage .legend i.line{border-radius:0;height:0;width:16px;border-top:2px solid}
+.stage .hint{position:absolute;right:16px;bottom:16px;font-family:var(--sans);font-size:12px;color:#8C9A91}
+.stage .badge{position:absolute;right:16px;top:16px;font-family:var(--sans);font-size:12px;color:#C9D3C5;border:1px solid #3A4A40;border-radius:4px;padding:4px 8px;background:rgba(21,32,26,.7)}
 
-  .wrap{max-width:1080px;margin:0 auto;padding:0 28px;}
-  .prose{max-width:640px;}
+.steps{padding:0 40px 0 44px;border-left:1px solid var(--rule)}
+.step{min-height:92vh;padding:72px 0 40px;max-width:34em;display:flex;flex-direction:column;justify-content:center}
+.step:first-child{min-height:calc(100vh - 49px);padding-top:40px}
+.step .num{font-family:var(--sans);font-size:14px;color:var(--teal);font-weight:600;margin:0 0 6px}
+.step h2{font-weight:500;font-size:32px;line-height:1.2;margin:0 0 16px}
+.step h1{font-weight:500;font-size:clamp(40px,4.6vw,60px);line-height:1.06;margin:0 0 22px;letter-spacing:-.01em}
+.step p{margin:0 0 14px}
+.lede{font-size:21px;line-height:1.5;color:var(--ink)}
+.small{font-size:15px;color:var(--ink-2)}
+.note{font-family:var(--sans);font-size:14px;line-height:1.5;color:var(--ink-2);border-left:3px solid var(--blossom);padding:4px 0 4px 12px;margin:10px 0 18px}
 
-  /* ---------- Header ---------- */
-  header.hero{padding:76px 0 48px;}
-  .kicker{
-    font-family:var(--mono);
-    font-size:12.5px;
-    color:var(--ink-soft);
-    letter-spacing:0.02em;
-    margin:0 0 22px;
-  }
-  h1{
-    font-family:var(--serif);
-    font-weight:500;
-    font-size:clamp(34px,5.4vw,58px);
-    line-height:1.06;
-    letter-spacing:-0.01em;
-    margin:0 0 22px;
-    max-width:15ch;
-  }
-  h1 em{font-style:italic;font-weight:500;color:var(--trunk);}
-  .subhead{
-    font-size:17px;
-    color:var(--ink-soft);
-    max-width:56ch;
-    margin:0 0 6px;
-  }
-  .meta-line{
-    font-family:var(--mono);
-    font-size:12px;
-    color:var(--ink-soft);
-    margin-top:26px;
-    padding-top:18px;
-    border-top:1px solid var(--line);
-    max-width:640px;
-  }
+/* controls */
+.ctl{font-family:var(--sans);font-size:15px;margin:18px 0 6px}
+.ctl label,.ctl .lab{display:flex;justify-content:space-between;gap:12px;font-weight:500;margin-bottom:6px}
+.ctl output{font-variant-numeric:tabular-nums;color:var(--teal);font-weight:600}
+input[type=range]{width:100%;accent-color:var(--teal);height:28px}
+.seg{display:inline-flex;border:1px solid var(--ink);border-radius:6px;overflow:hidden}
+.seg button{font:500 15px var(--sans);border:0;background:transparent;color:var(--ink);padding:8px 16px;cursor:pointer}
+.seg button[aria-pressed=true]{background:var(--ink);color:var(--paper)}
+.check{display:flex;gap:10px;align-items:flex-start;font-family:var(--sans);font-size:15px;margin:14px 0}
+.check input{width:18px;height:18px;accent-color:var(--teal);margin-top:2px}
+.btn{font:600 15px var(--sans);background:var(--ink);color:var(--paper);border:0;border-radius:6px;padding:10px 16px;cursor:pointer}
+.btn:disabled{opacity:.6;cursor:progress}
 
-  /* ---------- Dark instrument band ---------- */
-  .band{
-    background:var(--band-bg);
-    color:var(--band-text);
-    padding:48px 0 56px;
-  }
-  .band .wrap{max-width:1160px;}
-  .band-head{
-    display:flex;
-    flex-wrap:wrap;
-    align-items:baseline;
-    justify-content:space-between;
-    gap:16px;
-    margin-bottom:28px;
-  }
-  .band-title{
-    font-family:var(--serif);
-    font-size:22px;
-    font-weight:500;
-    margin:0;
-  }
-  .regen-btn{
-    font-family:var(--mono);
-    font-size:12px;
-    background:transparent;
-    color:var(--band-text);
-    border:1px solid var(--band-line);
-    padding:9px 14px;
-    border-radius:3px;
-    cursor:pointer;
-    transition:border-color .15s ease, background .15s ease;
-  }
-  .regen-btn:hover{border-color:var(--teal-bright);background:rgba(60,132,119,0.12);}
+/* data readouts */
+.readout{font-family:var(--sans);font-size:15px;display:grid;grid-template-columns:1fr auto;gap:6px 18px;margin:14px 0;padding:14px 0;border-top:1px solid var(--rule);border-bottom:1px solid var(--rule)}
+.readout dt{color:var(--ink-2)}
+.readout dd{margin:0;text-align:right;font-variant-numeric:tabular-nums;font-weight:600}
+table.vt{width:100%;border-collapse:collapse;font-family:var(--sans);font-size:14.5px;margin:12px 0;font-variant-numeric:tabular-nums}
+table.vt th{text-align:right;font-weight:500;color:var(--ink-2);padding:6px 4px;border-bottom:1px solid var(--ink)}
+table.vt th:first-child,table.vt td:first-child{text-align:left}
+table.vt td{text-align:right;padding:7px 4px;border-bottom:1px solid var(--rule)}
+.pos{color:#8A5A12}.neg{color:#8C2F3B}
+canvas.chart{width:100%;height:170px;display:block;margin:8px 0 4px}
+.gpair{display:grid;grid-template-columns:1fr 1fr;gap:14px;font-family:var(--sans);font-size:14px;margin:14px 0}
+.gpair div{border-top:3px solid;padding-top:8px}
+.gpair b{display:block;font-size:15px;margin-bottom:4px}
+.big{font-family:var(--serif);font-size:44px;line-height:1.05;font-weight:500;font-variant-numeric:tabular-nums}
+.chain{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:16px 0}
+.chain div{font-family:var(--sans);font-size:14px;color:var(--ink-2)}
+.chain .big{font-size:34px;color:var(--ink);display:block}
+.formula{font-family:var(--sans);font-size:14px;color:var(--ink-2);background:var(--paper-2);border-radius:6px;padding:10px 12px}
+ol.routes{font-family:var(--sans);font-size:15px;padding-left:22px;margin:10px 0}
+ol.routes li{margin:4px 0}
 
-  .studio{
-    display:grid;
-    grid-template-columns:150px 1fr 240px;
-    gap:0;
-    border:1px solid var(--band-line);
-    border-radius:4px;
-    overflow:hidden;
-  }
-  @media (max-width:860px){
-    .studio{grid-template-columns:1fr;}
-  }
+/* full-width sections */
+.wide{padding:96px 24px;border-top:1px solid var(--rule)}
+.wrap{max-width:1080px;margin:0 auto}
+.wide h2{font-weight:500;font-size:40px;line-height:1.15;margin:0 0 18px;max-width:22em}
+.wide .intro{font-size:21px;max-width:36em;margin:0 0 40px}
+.compare{display:grid;grid-template-columns:1fr 1fr;gap:28px;margin:0 0 20px}
+.compare > div{padding:22px 24px;border-radius:8px}
+.compare .old{background:var(--paper-2)}
+.compare .new{background:var(--ink);color:var(--paper)}
+.compare h3{font-family:var(--sans);font-size:17px;font-weight:600;margin:0 0 12px}
+.compare ol{margin:0;padding-left:20px;font-size:17px}
+.compare li{margin:4px 0}
+.compare p{margin:14px 0 0;font-size:16px}
+.scale{display:grid;grid-template-columns:1.1fr .9fr;gap:48px;align-items:start}
+.scale .panel{background:var(--ink);color:var(--paper);border-radius:8px;padding:26px}
+.scale .panel .ctl output{color:var(--pist)}
+.scale .panel .big{font-size:56px;color:#fff}
+.scale .panel .small{color:#BAC6B7}
+.why{display:grid;grid-template-columns:repeat(3,1fr);gap:32px;margin:48px 0 0}
+.why h3{font-size:21px;font-weight:600;margin:0 0 8px;line-height:1.3}
+.why p{margin:0;font-size:17px}
+.ods{display:grid;grid-template-columns:repeat(5,1fr);gap:0;margin-top:48px;border-top:1px solid var(--ink)}
+.ods div{padding:14px 14px 0 0;font-family:var(--sans);font-size:14px;color:var(--ink-2)}
+.ods b{display:block;font-family:var(--serif);font-size:24px;color:var(--ink);font-weight:500}
+.years{display:grid;grid-template-columns:repeat(4,1fr);gap:0;border-top:2px solid var(--ink)}
+.years > div{padding:16px 18px 0 0;border-right:1px solid var(--rule);margin-right:18px}
+.years > div:last-child{border-right:0;margin-right:0}
+.years .y{font-family:var(--sans);font-weight:600;color:var(--teal);font-size:15px}
+.years h3{font-size:19px;font-weight:600;line-height:1.3;margin:4px 0 10px}
+.years ul{margin:0;padding-left:18px;font-family:var(--sans);font-size:14px;color:var(--ink-2)}
+.years li{margin:5px 0}
+.refs{font-size:15px;color:var(--ink-2);columns:2;column-gap:40px}
+.refs p{margin:0 0 10px;break-inside:avoid}
+footer{padding:36px 24px calc(env(safe-area-inset-bottom,0px) + 36px);font-family:var(--sans);font-size:14px;color:var(--ink-2);border-top:1px solid var(--rule)}
 
-  .mode-rail{
-    background:var(--band-bg-2);
-    border-right:1px solid var(--band-line);
-    display:flex;
-    flex-direction:column;
-  }
-  @media (max-width:860px){
-    .mode-rail{
-      flex-direction:row;
-      border-right:none;
-      border-bottom:1px solid var(--band-line);
-      overflow-x:auto;
-    }
-  }
-  .mode-btn{
-    text-align:left;
-    background:transparent;
-    border:none;
-    border-bottom:1px solid var(--band-line);
-    color:var(--band-text-dim);
-    font-family:var(--sans);
-    font-size:13px;
-    padding:16px 16px;
-    cursor:pointer;
-    display:flex;
-    gap:10px;
-    align-items:flex-start;
-    line-height:1.35;
-  }
-  @media (max-width:860px){
-    .mode-btn{border-bottom:none;border-right:1px solid var(--band-line);white-space:nowrap;flex:0 0 auto;}
-  }
-  .mode-btn .n{font-family:var(--mono);color:var(--band-text-dim);font-size:12px;}
-  .mode-btn.active{background:var(--band-bg);color:var(--band-text);}
-  .mode-btn.active .n{color:var(--teal-bright);}
-  .mode-btn:hover:not(.active){color:var(--band-text);}
-
-  .canvas-col{
-    background:#141812;
-    padding:18px 18px 10px;
-    display:flex;
-    flex-direction:column;
-  }
-  .canvas-box{
-    position:relative;
-    width:100%;
-    aspect-ratio:4/3;
-    border-radius:3px;
-    overflow:hidden;
-    background:#171D16;
-  }
-  canvas{display:block;width:100%;height:100%;}
-  .caption{
-    font-family:var(--mono);
-    font-size:11.5px;
-    color:var(--band-text-dim);
-    margin-top:12px;
-    min-height:2.6em;
-  }
-
-  .control-col{
-    background:var(--band-bg-2);
-    border-left:1px solid var(--band-line);
-    padding:20px 18px 22px;
-    display:flex;
-    flex-direction:column;
-    gap:20px;
-  }
-  @media (max-width:860px){
-    .control-col{border-left:none;border-top:1px solid var(--band-line);}
-  }
-  .ctrl-label{
-    font-family:var(--mono);
-    font-size:11px;
-    color:var(--band-text-dim);
-    display:flex;
-    justify-content:space-between;
-    margin-bottom:8px;
-  }
-  input[type=range]{
-    width:100%;
-    accent-color:var(--teal-bright);
-  }
-  input[type=range]:disabled{opacity:.35;}
-  .hint{font-size:11.5px;color:var(--band-text-dim);margin-top:6px;line-height:1.45;}
-
-  .readout{
-    display:grid;
-    grid-template-columns:1fr;
-    gap:10px;
-    font-family:var(--mono);
-    font-size:12px;
-  }
-  .readout .row{
-    display:flex;
-    justify-content:space-between;
-    gap:8px;
-    padding-bottom:8px;
-    border-bottom:1px solid var(--band-line);
-  }
-  .readout .row:last-child{border-bottom:none;padding-bottom:0;}
-  .readout .k{color:var(--band-text-dim);}
-  .readout .v{color:var(--band-text);text-align:right;}
-  .readout .v.warn{color:#E0A08F;}
-
-  .legend{
-    display:flex;
-    flex-wrap:wrap;
-    gap:14px;
-    margin-top:16px;
-    font-size:12px;
-    color:var(--band-text-dim);
-  }
-  .legend span{display:inline-flex;align-items:center;gap:6px;}
-  .swatch{width:11px;height:11px;border-radius:2px;display:inline-block;}
-
-  /* ---------- Sections ---------- */
-  section.plain{padding:52px 0;}
-  section.plain h2{
-    font-family:var(--serif);
-    font-weight:500;
-    font-size:26px;
-    margin:0 0 16px;
-  }
-  section.plain p{color:var(--ink-soft);}
-
-  /* ---------- Timeline ---------- */
-  .timeline{
-    padding:56px 0 64px;
-    border-top:1px solid var(--line);
-  }
-  .timeline h2{
-    font-family:var(--serif);
-    font-weight:500;
-    font-size:26px;
-    margin:0 0 8px;
-  }
-  .timeline > .wrap > p.prose{margin-bottom:38px;}
-  .tl-list{
-    display:grid;
-    grid-template-columns:repeat(auto-fit,minmax(210px,1fr));
-    gap:0;
-    border-top:1px solid var(--line);
-  }
-  .tl-item{
-    padding:20px 20px 22px 0;
-    border-bottom:1px solid var(--line);
-    position:relative;
-  }
-  .tl-item .num{
-    font-family:var(--mono);
-    font-size:12px;
-    color:var(--trunk);
-  }
-  .tl-item h3{
-    font-family:var(--serif);
-    font-weight:500;
-    font-size:17px;
-    margin:8px 0 8px;
-  }
-  .tl-item p{
-    font-size:13.5px;
-    color:var(--ink-soft);
-    margin:0;
-  }
-  .tl-item.demoed{ }
-  .tl-item.demoed .num::after{
-    content:" · en la demo";
-    color:var(--ink-soft);
-    font-size:10.5px;
-  }
-
-  footer{
-    border-top:1px solid var(--line);
-    padding:36px 0 54px;
-  }
-  footer p{
-    font-size:12.5px;
-    color:var(--ink-soft);
-    max-width:640px;
-    margin:0 0 6px;
-  }
-  footer .sig{
-    font-family:var(--mono);
-    font-size:11.5px;
-    color:var(--ink-soft);
-    margin-top:18px;
-  }
+@media (max-width: 900px){
+  body{font-size:17px}
+  .top{padding-left:16px;padding-right:16px}
+  .top nav{display:none}
+  .story{display:block}
+  .stage{height:46vh;top:45px;z-index:10}
+  .stage .phase strong{font-size:18px}
+  .stage .hint{display:none}
+  .stage .badge{display:none}
+  .steps{padding:0 18px;border-left:0}
+  .step{min-height:auto;padding:36px 0 44px;border-bottom:1px solid var(--rule)}
+  .step:first-child{min-height:auto;padding-top:28px}
+  .step h1{font-size:36px}
+  .compare,.scale,.why,.years{grid-template-columns:1fr}
+  .years > div{border-right:0;margin-right:0;border-bottom:1px solid var(--rule);padding-bottom:16px}
+  .ods{grid-template-columns:repeat(2,1fr)}
+  .refs{columns:1}
+  .wide{padding:64px 18px}
+  .wide h2{font-size:30px}
+}
 </style>
 </head>
 <body>
 
-<header class="hero">
-  <div class="wrap">
-    <p class="kicker">Propuesta de tesis doctoral · demostración conceptual</p>
-    <h1>No hace falta cortar<br>el árbol para <em>leer</em><br>su esqueleto.</h1>
-    <p class="subhead">
-      Esta página ilustra, con un árbol sintético, la idea central de la propuesta:
-      reconstruir un cultivo leñoso con 3D Gaussian Splatting y usar la forma de cada
-      gaussiana para separar la madera del follaje,
-      reconstruir el esqueleto y extraer variables estructurales sin tocar la planta.
-    </p>
-    <p class="meta-line">
-      Non-destructive structural characterization of woody crops through tree skeleton
-      extraction from 3D Gaussian Splatting · Fundación Ramón Areces, Ciencias de la
-      Vida y de la Materia 2026
-    </p>
-  </div>
+<header class="top">
+  <div><b>Carbono sin talar</b> <span style="color:var(--ink-2)">Demo de la propuesta doctoral</span></div>
+  <nav aria-label="Secciones">
+    <a href="#proceso">El proceso</a>
+    <a href="#impacto">Impacto en la biosfera</a>
+    <a href="#plan">Plan de trabajo</a>
+    <a href="#referencias">Referencias</a>
+  </nav>
 </header>
 
-<section class="band" id="demo">
-  <div class="wrap">
-    <div class="band-head">
-      <h2 class="band-title">Demostración Interactiva</h2>
-      <button class="regen-btn" id="regen">↻ generar otro árbol</button>
-    </div>
+<main>
+<section class="story" id="proceso">
+  <div class="stage" id="stage">
+    <canvas id="view" role="img" aria-label="Árbol sintético representado con gaussianas 3D; su aspecto cambia según la fase del proceso"></canvas>
+    <div class="phase" id="phaseLabel"><span id="phaseSmall">Árbol sintético</span><strong id="phaseTitle">Almendro</strong></div>
+    <div class="badge">Árbol sintético con valores ilustrativos</div>
+    <div class="legend" id="legend"></div>
+    <div class="hint">Arrastra para girar el árbol</div>
+  </div>
 
-    <div class="studio">
-      <div class="mode-rail" id="modeRail">
-        <button class="mode-btn active" data-mode="0"><span class="n">01</span><span>Gaussianas 3D</span></button>
-        <button class="mode-btn" data-mode="1"><span class="n">02</span><span>Clasificación estructural</span></button>
-        <button class="mode-btn" data-mode="2"><span class="n">03</span><span>Esqueleto</span></button>
-        <button class="mode-btn" data-mode="3"><span class="n">04</span><span>Variables extraídas</span></button>
-      </div>
+  <div class="steps">
 
-      <div class="canvas-col">
-        <div class="canvas-box">
-          <canvas id="tree" width="800" height="600" role="img" aria-label="Visualización interactiva de un árbol sintético reconstruido como gaussianas 3D, su clasificación estructural y su esqueleto extraído."></canvas>
+    <article class="step" data-mode="natural">
+      <h1>Medir el carbono de un árbol sin talarlo</h1>
+      <p class="lede">A partir de fotografías tomadas con un dron, el árbol se reconstruye en 3D, se extrae su esqueleto de tronco y ramas, y con él se calcula cuánta madera tiene y cuánto carbono almacena.</p>
+      <p>Esta página recorre las siete fases de la propuesta doctoral con un árbol generado por computador. Cada control recalcula el proceso completo, de modo que se puede ver cómo una decisión en una fase afecta al resultado final.</p>
+      <div class="ctl">
+        <div class="lab">Especie del árbol de prueba</div>
+        <div class="seg" role="group" aria-label="Especie">
+          <button type="button" data-species="almendro" aria-pressed="true">Almendro</button>
+          <button type="button" data-species="pistacho" aria-pressed="false">Pistacho</button>
         </div>
-        <p class="caption" id="caption"></p>
       </div>
+      <p class="note">Los árboles de esta demo son sintéticos: se conoce su geometría exacta, igual que en la validación planteada en la tesis. Los números sirven para explicar el método y no son resultados de la investigación.</p>
+    </article>
 
-      <div class="control-col">
-        <div>
-          <div class="ctrl-label"><span>Umbral de anisotropía</span><span id="threshVal">0.45</span></div>
-          <input type="range" id="thresh" min="0" max="1" step="0.01" value="0.45">
-          <p class="hint" id="threshHint">Sube el umbral y las ramas finas empiezan a perderse; bájalo y hojas o ruido se cuelan como si fueran madera.</p>
+    <article class="step" data-mode="natural">
+      <h2>El problema: hoy, para medir hay que cortar</h2>
+      <p>Las ecuaciones que convierten el tamaño de un árbol en biomasa se construyen talando árboles, separando tronco, ramas y hojas, secándolos y pesándolos. Es preciso, pero el árbol desaparece y no se puede volver a medir.</p>
+      <p>Los escáneres láser evitan la tala, pero son caros y tienen dificultades con las ramas finas y las copas densas. Los cultivos leñosos como el almendro y el pistacho, con copas irregulares y mucha oclusión, quedan especialmente mal cubiertos.</p>
+      <p>La propuesta busca una alternativa no destructiva y de bajo coste: cámaras comerciales, reconstrucción con 3D Gaussian Splatting y un esqueleto del árbol a partir del cual medir.</p>
+    </article>
+
+    <article class="step" data-mode="acq" id="f1">
+      <p class="num">Fase 1</p>
+      <h2>Adquisición: fotografiar el árbol desde muchos ángulos</h2>
+      <p>Un dron o una cámara rodean el árbol y toman imágenes desde distintas alturas. Las hojas tapan parte de las ramas, así que la pregunta es cuántas vistas hacen falta y en qué momento del año conviene capturar.</p>
+      <div class="ctl">
+        <div class="lab">Estado del árbol</div>
+        <div class="seg" role="group" aria-label="Estado del árbol">
+          <button type="button" data-leaves="1" aria-pressed="true">Con hoja</button>
+          <button type="button" data-leaves="0" aria-pressed="false">Sin hoja</button>
         </div>
+      </div>
+      <div class="ctl">
+        <label for="views">Número de vistas <output id="viewsOut">24</output></label>
+        <input type="range" id="views" min="6" max="64" step="2" value="24">
+      </div>
+      <dl class="readout">
+        <dt>Madera observada en al menos 3 vistas</dt><dd id="covAll">—</dd>
+        <dt>Ramas finas (menos de 2 cm de diámetro)</dt><dd id="covThin">—</dd>
+      </dl>
+      <p class="small">En rojo, la madera que queda oculta. Prueba a quitar las hojas o a añadir vistas: este es el primer objetivo específico de la tesis.</p>
+    </article>
 
-        <div class="readout" id="readout"></div>
+    <article class="step" data-mode="gs" id="f2">
+      <p class="num">Fase 2</p>
+      <h2>Reconstrucción 3DGS: el árbol como miles de manchas</h2>
+      <p>3D Gaussian Splatting representa la escena con miles de pequeñas elipses en 3D, llamadas gaussianas. Cada una tiene posición, tamaño en tres direcciones, orientación, color y opacidad. Vistas juntas, forman una imagen realista del árbol.</p>
+      <p>Lo interesante para esta tesis no es la imagen, sino la forma de cada gaussiana. Compara dos de ellas, marcadas en el árbol:</p>
+      <div class="gpair">
+        <div style="border-color:var(--bark)"><b>En una rama</b><span id="gWood">—</span></div>
+        <div style="border-color:var(--pist)"><b>En una hoja</b><span id="gLeaf">—</span></div>
+      </div>
+      <p class="small">El alargamiento es la escala mayor dividida por la intermedia. Las gaussianas de ramas tienden a ser alargadas y seguir la dirección de la rama; las de hojas, más redondeadas.</p>
+    </article>
 
-        <div class="legend" id="legend"></div>
+    <article class="step" data-mode="ident" id="f3">
+      <p class="num">Fase 3</p>
+      <h2>Identificación: separar madera, hojas y ruido</h2>
+      <p>La hipótesis central de la propuesta: los atributos de cada gaussiana bastan para distinguir la estructura leñosa del follaje, sin depender de máscaras 2D dibujadas a mano.</p>
+      <canvas class="chart" id="hist" aria-label="Histograma del alargamiento de gaussianas de madera y de hojas, con el umbral de separación"></canvas>
+      <div class="ctl">
+        <label for="thr">Umbral de alargamiento para «madera» <output id="thrOut">2,0</output></label>
+        <input type="range" id="thr" min="1.2" max="4.5" step="0.1" value="2.0">
+      </div>
+      <label class="check"><input type="checkbox" id="filter" checked> <span>Exigir continuidad: una gaussiana de madera debe tener vecinas alineadas, como en una rama real</span></label>
+      <dl class="readout">
+        <dt>Precisión (lo marcado como madera que sí es madera)</dt><dd id="prec">—</dd>
+        <dt>Exhaustividad (madera real encontrada)</dt><dd id="rec">—</dd>
+      </dl>
+    </article>
+
+    <article class="step" data-mode="skel" id="f4">
+      <p class="num">Fase 4</p>
+      <h2>Esqueletización: del conjunto de manchas a un grafo</h2>
+      <p>Las gaussianas de madera se conectan en un grafo S = (V, E): los nodos guardan posición y radio, y las aristas indican qué punto está unido a cuál. El resultado es el esqueleto del árbol, con tronco, ramas principales y ramas finas.</p>
+      <dl class="readout">
+        <dt>Segmentos del esqueleto recuperados</dt><dd id="segDet">—</dd>
+        <dt>Ramas recuperadas</dt><dd id="brDet">—</dd>
+      </dl>
+      <p class="small">Las líneas grises discontinuas son ramas que no se recuperaron porque estaban ocultas o mal clasificadas. Los errores de las fases anteriores se propagan hasta aquí.</p>
+    </article>
+
+    <article class="step" data-mode="vars" id="f5">
+      <p class="num">Fase 5</p>
+      <h2>Extracción de variables: medir sobre el esqueleto</h2>
+      <p>Con el esqueleto se calculan de forma automática las variables estructurales. El volumen leñoso es la suma de los tramos de tronco y ramas, cada uno tratado como un cilindro ligeramente cónico.</p>
+      <dl class="readout" id="varsList"></dl>
+      <p class="small">En frutales, el diámetro del tronco se suele medir por debajo de la primera ramificación; aquí se toma a 0,3 m del suelo.</p>
+    </article>
+
+    <article class="step" data-mode="valid" id="f6">
+      <p class="num">Fase 6</p>
+      <h2>Validación: comparar con la geometría real</h2>
+      <p>Como el árbol es sintético, su geometría exacta es conocida. En la tesis, esa referencia vendrá también de datasets con escaneo láser y, si es posible, de mediciones de campo.</p>
+      <table class="vt" id="validTable" aria-label="Comparación de variables estimadas y de referencia"></table>
+      <p class="small">Fíjate en que pueden faltar muchas ramas finas y, aun así, el volumen cambia poco: la mayor parte de la madera está en el tronco y las ramas gruesas. En cambio, el grosor de las ramas finas tiende a sobreestimarse, lo que empuja el volumen hacia arriba.</p>
+      <p>Un solo árbol no basta. La validación real repite el proceso sobre muchos árboles y resume el error con sesgo, RMSE y R².</p>
+      <button type="button" class="btn" id="runVal">Validar sobre 30 árboles sintéticos</button>
+      <canvas class="chart" id="scatter" style="height:220px" aria-label="Diagrama de dispersión de biomasa estimada frente a biomasa de referencia"></canvas>
+      <dl class="readout" id="valStats" hidden></dl>
+    </article>
+
+    <article class="step" data-mode="carbon" id="f7">
+      <p class="num">Fase 7</p>
+      <h2>Biomasa y carbono: de la madera medida al CO₂</h2>
+      <p>La vía principal multiplica el volumen leñoso reconstruido por la densidad básica de la madera de la especie. Las hojas no se cuentan: el resultado es biomasa aérea leñosa.</p>
+      <div class="ctl">
+        <label for="dens">Densidad básica de la madera <output id="densOut">0,75 g/cm³</output></label>
+        <input type="range" id="dens" min="0.45" max="1.05" step="0.01" value="0.75">
+      </div>
+      <p class="small">Valor ilustrativo y editable. En la tesis se tomará de bases de datos como la Global Wood Density Database.</p>
+      <div class="chain">
+        <div><span class="big" id="bOut">—</span>kg de biomasa leñosa</div>
+        <div><span class="big" id="cOut">—</span>kg de carbono</div>
+        <div><span class="big" id="co2Out">—</span>kg de CO₂ equivalente</div>
+      </div>
+      <p class="formula">Biomasa = volumen × densidad. Carbono = biomasa × 0,47. CO₂ = carbono × 44/12.</p>
+      <p style="margin-top:16px">La tesis contempla tres vías, en orden de prioridad:</p>
+      <ol class="routes">
+        <li>Volumen reconstruido × densidad de la madera (la que usa esta demo).</li>
+        <li>Ecuaciones alométricas específicas de la especie, si existen.</li>
+        <li>Ecuaciones genéricas de frutales o bosques, como último recurso.</li>
+      </ol>
+    </article>
+
+  </div>
+</section>
+
+<section class="wide" id="impacto">
+  <div class="wrap">
+    <h2>Por qué importa para la biosfera</h2>
+    <p class="intro">Los cultivos leñosos permanentes almacenan carbono en su madera durante décadas, pero ese carbono rara vez se mide bien. Un método que lo mida sin dañar el árbol permite contarlo, seguirlo en el tiempo y reconocerlo en la mitigación del cambio climático.</p>
+
+    <div class="compare">
+      <div class="old">
+        <h3>Método tradicional</h3>
+        <ol><li>Talar una muestra de árboles.</li><li>Separar tronco, ramas y hojas.</li><li>Secar y pesar cada parte.</li></ol>
+        <p>El árbol se pierde y no se puede volver a medir.</p>
+      </div>
+      <div class="new">
+        <h3>Método propuesto</h3>
+        <ol><li>Fotografiar el árbol con cámaras de bajo coste.</li><li>Reconstruirlo con 3D Gaussian Splatting.</li><li>Medir sobre su esqueleto.</li></ol>
+        <p>El árbol sigue vivo y se puede medir cada año.</p>
       </div>
     </div>
-  </div>
-</section>
 
-<section class="plain">
-  <div class="wrap">
-    <div class="prose">
-      <h2>El problema, en una frase</h2>
-      <p>
-Los métodos actuales para caracterizar la estructura de los cultivos leñosos requieren costosos sistemas de detección 3D o dependen de nubes de puntos reconstruidas que pueden estar incompletas o fragmentadas 
-alrededor de ramas delgadas y estructuras ocluidas. Al mismo tiempo, las mediciones de plantas convencionales proporcionan información estructural limitada y a menudo requieren un trabajo manual intensivo e invasivo. 
-Esto limita el desarrollo de enfoques no destructivos, escalables y cuantitativos para monitorear y gestionar los sistemas agrícolas leñosos.
-      </p>
+    <div class="scale" style="margin-top:56px">
+      <div>
+        <h3 style="font-size:26px;font-weight:500;margin:0 0 12px">Del árbol a la hectárea</h3>
+        <p>El cálculo por árbol se puede escalar a una plantación completa. Con el árbol de la demo y una densidad de plantación dada, este es el carbono almacenado en la madera en pie.</p>
+        <p class="small">Es carbono almacenado, no una tasa anual de captura. Supone árboles similares al de la demo y usa la densidad de madera elegida en la Fase 7; la densidad de plantación es un ejemplo editable.</p>
+      </div>
+      <div class="panel">
+        <div class="ctl">
+          <label for="ha">Árboles por hectárea <output id="haOut">250</output></label>
+          <input type="range" id="ha" min="100" max="1200" step="10" value="250">
+        </div>
+        <span class="big" id="haCO2">—</span>
+        <div class="small">toneladas de CO₂ equivalente almacenadas en madera por hectárea</div>
+        <div class="small" style="margin-top:10px" id="haC">—</div>
+      </div>
+    </div>
+
+    <div class="why">
+      <div><h3>Sumideros poco contabilizados</h3><p>Muchos inventarios nacionales usan valores por defecto que no reflejan la arquitectura ni el manejo de los cultivos leñosos (Kwak et al., 2025).</p></div>
+      <div><h3>Medir sin destruir</h3><p>Sin talar, el mismo árbol se puede seguir año tras año, y la medición no altera el cultivo ni el ecosistema.</p></div>
+      <div><h3>Accesible y escalable</h3><p>Drones y cámaras comerciales en lugar de escáneres costosos. Datos y código se publicarán en abierto.</p></div>
+    </div>
+
+    <div class="ods" aria-label="Objetivos de Desarrollo Sostenible">
+      <div><b>ODS 2</b>Producción agrícola sostenible</div>
+      <div><b>ODS 9</b>Innovación con plataformas accesibles</div>
+      <div><b>ODS 12</b>Menos muestreo destructivo</div>
+      <div><b>ODS 13</b>Inventarios de carbono para la mitigación</div>
+      <div><b>ODS 15</b>Monitoreo sin degradar ecosistemas</div>
     </div>
   </div>
 </section>
 
-<section class="timeline">
+<section class="wide" id="plan">
   <div class="wrap">
-    <h2>Siete fases, un flujo</h2>
-    <p class="prose">
-      La metodología completa encadena siete fases, de la adquisición en campo a la
-      evaluación de utilidad para biomasa, fenotipado y poda. La demo de arriba
-      reproduce, de forma simplificada, las fases 2 a 5.
-    </p>
-    <div class="tl-list">
-      <div class="tl-item"><span class="num">01</span><h3>Adquisición</h3><p>Imágenes o LiDAR desde UAV o a pie de campo, según el cultivo y el terreno.</p></div>
-      <div class="tl-item demoed"><span class="num">02</span><h3>Reconstrucción 3DGS</h3><p>Cada gaussiana guarda posición, escala, orientación, opacidad y anisotropía.</p></div>
-      <div class="tl-item demoed"><span class="num">03</span><h3>Gaussianas estructurales</h3><p>Se separa la madera &mdash;tronco y ramas&mdash; del follaje y del ruido de reconstrucción.</p></div>
-      <div class="tl-item demoed"><span class="num">04</span><h3>Esqueletización</h3><p>Las gaussianas de madera se conectan en un grafo con nodos, radios y conectividad.</p></div>
-      <div class="tl-item demoed"><span class="num">05</span><h3>Extracción de variables</h3><p>Altura, diámetro, longitud, orientación y volumen, calculados sobre el esqueleto.</p></div>
-      <div class="tl-item"><span class="num">06</span><h3>Validación</h3><p>Precisión geométrica y topológica frente a mediciones y esqueletos de referencia.</p></div>
-      <div class="tl-item"><span class="num">07</span><h3>Evaluación de utilidad</h3><p>¿Sirven estas variables para biomasa y carbono, fenotipado o poda de precisión?</p></div>
+    <h2>Plan de trabajo en cuatro años</h2>
+    <p class="intro">Cada año cubre un bloque de fases y se apoya en los resultados del anterior.</p>
+    <div class="years">
+      <div><span class="y">Año 1</span><h3>Fundamentos, línea base y adquisición piloto</h3>
+        <ul><li>Métodos de referencia reproducidos</li><li>Protocolo multi-sensor validado</li><li>Artículo de revisión (survey)</li><li>Dataset piloto de almendro y pistacho</li></ul></div>
+      <div><span class="y">Año 2</span><h3>Adquisición, reconstrucción e identificación estructural</h3>
+        <ul><li>Efecto de las configuraciones de adquisición</li><li>Separación madera, follaje y ruido</li><li>Dataset anotado y árboles sintéticos</li><li>Primer artículo</li></ul></div>
+      <div><span class="y">Año 3</span><h3>Esqueletización, variables y validación</h3>
+        <ul><li>Esqueleto automático sobre todo el dataset</li><li>Validación frente a métodos existentes</li><li>Software y benchmark reutilizable</li><li>Segundo artículo</li></ul></div>
+      <div><span class="y">Año 4</span><h3>Biomasa, carbono, difusión y tesis</h3>
+        <ul><li>Biomasa y carbono con error cuantificado</li><li>Tercer artículo</li><li>Código y datasets en abierto</li><li>Depósito y defensa de la tesis</li></ul></div>
     </div>
   </div>
 </section>
+
+<section class="wide" id="referencias">
+  <div class="wrap">
+    <h2 style="font-size:30px">Referencias principales</h2>
+    <div class="refs">
+      <p>Calders, K., et al. (2015). Nondestructive estimates of above-ground biomass using terrestrial laser scanning. <i>Methods in Ecology and Evolution</i>, 6(2), 198–208. <a href="https://doi.org/10.1111/2041-210X.12301">doi:10.1111/2041-210X.12301</a></p>
+      <p>Kwak, M., et al. (2025). Allometric equations for orchard and vineyard trees: enhancing AFOLU-based climate change mitigation. <i>Frontiers in Plant Science</i>, 16, 1663283. <a href="https://doi.org/10.3389/fpls.2025.1663283">doi:10.3389/fpls.2025.1663283</a></p>
+      <p>Liu, X., et al. (2025). Masks-to-Skeleton: Multi-view mask-based tree skeleton extraction with 3D Gaussian Splatting. <i>Sensors</i>, 25(14), 4354. <a href="https://doi.org/10.3390/s25144354">doi:10.3390/s25144354</a></p>
+      <p>Raumonen, P., et al. (2013). Fast automatic precision tree models from terrestrial laser scanner data. <i>Remote Sensing</i>, 5(2), 491–520. <a href="https://doi.org/10.3390/rs5020491">doi:10.3390/rs5020491</a></p>
+      <p>Shen, B., et al. (2026). Thin Gaussian Splatting for high-quality geometric reconstruction of peach tree. <i>Computers and Electronics in Agriculture</i>. <a href="https://doi.org/10.1016/j.compag.2026.112232">doi:10.1016/j.compag.2026.112232</a></p>
+      <p>Li, J., et al. (2025). A survey on 3D reconstruction techniques in plant phenotyping: From classical methods to NeRF, 3DGS, and beyond. <i>Plant Phenomics</i>, 7(4), 100137. <a href="https://doi.org/10.1016/j.plaphe.2025.100137">doi:10.1016/j.plaphe.2025.100137</a></p>
+    </div>
+  </div>
+</section>
+</main>
 
 <footer>
-  <div class="wrap">
-    <p>
-      Esta demo usa un árbol sintético generado en el navegador, no datos reales
-      ni la implementación final de la tesis; sirve únicamente para ilustrar
-      la idea metodológica de forma interactiva. Las cifras del panel son ilustrativas.
-    </p>
-    <p class="sig">Joan Manuel Moreno Rojas · Director: João Ricardo Pereira Valente</p>
-  </div>
+  <div class="wrap">Demostración ilustrativa de la propuesta doctoral «Caracterización estructural no destructiva de cultivos leñosos mediante la extracción del esqueleto del árbol a partir de 3D Gaussian Splatting para una gestión agrícola sostenible». Los árboles se generan por procedimiento y los valores no corresponden a mediciones reales. La fracción de carbono (0,47) es el valor por defecto del IPCC para biomasa leñosa.</div>
 </footer>
 
 <script>
-(function(){
-  "use strict";
+"use strict";
+/* ------------------------------------------------------------------
+   Utilidades
+------------------------------------------------------------------ */
+const fmt = (x, d = 1) => Number.isFinite(x) ? x.toLocaleString('es-ES', {minimumFractionDigits: d, maximumFractionDigits: d}) : '—';
+const fmt0 = x => Number.isFinite(x) ? Math.round(x).toLocaleString('es-ES') : '—';
+function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+function mkRng(seed){const r=mulberry32(seed);r.n=()=>{let u=0,v=0;while(!u)u=r();while(!v)v=r();return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v)};r.u=(a,b)=>a+(b-a)*r();return r}
+function hash3(a,b,c){let h=Math.imul(a,0x27d4eb2d)^Math.imul(b,0x165667b1)^Math.imul(c,0x9e3779b1);h^=h>>>15;h=Math.imul(h,0x85ebca6b);h^=h>>>13;h=Math.imul(h,0xc2b2ae35);h^=h>>>16;return (h>>>0)/4294967296}
+const add=(a,b)=>[a[0]+b[0],a[1]+b[1],a[2]+b[2]], sub=(a,b)=>[a[0]-b[0],a[1]-b[1],a[2]-b[2]], mul=(a,s)=>[a[0]*s,a[1]*s,a[2]*s];
+const dot=(a,b)=>a[0]*b[0]+a[1]*b[1]+a[2]*b[2], cross=(a,b)=>[a[1]*b[2]-a[2]*b[1],a[2]*b[0]-a[0]*b[2],a[0]*b[1]-a[1]*b[0]];
+const len=a=>Math.hypot(a[0],a[1],a[2]), norm=a=>{const l=len(a)||1;return[a[0]/l,a[1]/l,a[2]/l]};
+function perp(d){const t=Math.abs(d[1])<.9?[0,1,0]:[1,0,0];const a=norm(cross(d,t));return[a,cross(d,a)]}
+function randUnit(r){const z=r.u(-1,1),t=r.u(0,2*Math.PI),s=Math.sqrt(1-z*z);return[s*Math.cos(t),z,s*Math.sin(t)]}
 
-  // ---------- PRNG ----------
-  function mulberry32(a){
-    return function(){
-      a |= 0; a = (a + 0x6D2B79F5) | 0;
-      var t = Math.imul(a ^ (a >>> 15), 1 | a);
-      t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
-      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-    };
-  }
+/* ------------------------------------------------------------------
+   1. Generación del árbol sintético (geometría de referencia)
+------------------------------------------------------------------ */
+const SPECIES = {
+  almendro:{name:'Almendro', trunkH:[.75,.95], trunkR:[.095,.125], scaff:[3,4], scAng:[28,38], scLen:[1.2,1.5], lenDecay:.72, rDecay:.64, childAng:27, upward:.26, depth:4, leafR:[.34,.48], leafN:[34,48], leafDens:.80, leafCol:[[122,158,74],[146,178,88],[104,140,62]], leafRatio:1.25},
+  pistacho:{name:'Pistacho', trunkH:[.55,.72], trunkR:[.11,.14], scaff:[4,5], scAng:[44,56], scLen:[1.1,1.4], lenDecay:.74, rDecay:.62, childAng:34, upward:.1, depth:4, leafR:[.38,.55], leafN:[40,56], leafDens:.88, leafCol:[[86,120,64],[104,138,70],[72,104,56]], leafRatio:1.3}
+};
 
-  // ---------- Constants ----------
-  var HEIGHT_SCALE = 4.47;   // meters per normalized vertical unit
-  var RADIUS_SCALE = 2.27;   // meters per normalized radius unit
-
-  var ANISO_RANGE = [
-    [0.85,0.97],[0.68,0.86],[0.50,0.72],[0.35,0.56],[0.22,0.42],[0.14,0.30]
-  ];
-
-  // ---------- Tree generation ----------
-  function generateTree(seed){
-    var rng = mulberry32(seed);
-    var segments = [];
-    var foliage = [];
-    var noise = [];
-    var idc = 0;
-
-    function anisoFor(depth){
-      var r = ANISO_RANGE[Math.min(depth, ANISO_RANGE.length-1)];
-      return r[0] + rng()*(r[1]-r[0]);
+function genTree(spKey, seed){
+  const sp=SPECIES[spKey], r=mkRng(seed);
+  const segs=[], branches=[], clusters=[];
+  function grow(start, dir, L, r0, level, parent){
+    const b={id:branches.length, level, parent, segs:[]}; branches.push(b);
+    const n=Math.max(2, Math.round(L/0.26)), rEnd=Math.max(0.005, r0*0.78);
+    let p=start, d=dir;
+    for(let i=0;i<n;i++){
+      d=norm(add(add(d, mul([r.n(),r.n()*.4,r.n()], level===0?0.02:0.12)), [0,sp.upward*0.25*(level>0),0]));
+      const q=add(p, mul(d, L/n));
+      const ra=r0+(rEnd-r0)*i/n, rb=r0+(rEnd-r0)*(i+1)/n;
+      const s={a:p,b:q,ra,rb,branch:b.id,level,idx:segs.length}; segs.push(s); b.segs.push(s.idx);
+      p=q;
     }
+    if(level===0){
+      const k=Math.round(r.u(sp.scaff[0], sp.scaff[1]+.99)-.49), phi0=r.u(0,6.28);
+      for(let i=0;i<k;i++){
+        const az=phi0+i*2*Math.PI/k+r.n()*.25, el=(r.u(sp.scAng[0],sp.scAng[1]))*Math.PI/180;
+        const dd=norm([Math.sin(el)*Math.cos(az), Math.cos(el), Math.sin(el)*Math.sin(az)]);
+        grow(p, dd, r.u(sp.scLen[0],sp.scLen[1]), rEnd*r.u(.62,.72), 1, b.id);
+      }
+      return;
+    }
+    const childR=rEnd*sp.rDecay;
+    if(level>=sp.depth || childR<0.006){
+      const R=r.u(sp.leafR[0],sp.leafR[1])*(level>=3?1:.85);
+      clusters.push({c:add(p, mul(d, R*0.55)), R, branch:b.id});
+      return;
+    }
+    const nc=r()<.55?2:3; const [e1,e2]=perp(d); const rot=r.u(0,6.28);
+    for(let i=0;i<nc;i++){
+      const a=rot+i*2*Math.PI/nc, ang=(sp.childAng+r.n()*6)*Math.PI/180;
+      const side=add(mul(e1,Math.cos(a)),mul(e2,Math.sin(a)));
+      let nd=norm(add(mul(d,Math.cos(ang)), mul(side,Math.sin(ang))));
+      nd=norm(add(nd,[0,sp.upward,0]));
+      grow(p, nd, L*sp.lenDecay*r.u(.85,1.1), childR*(i===0?1.05:.9), level+1, b.id);
+    }
+    if(level>=2 && r()<.5){
+      const R=r.u(sp.leafR[0],sp.leafR[1])*.7; clusters.push({c:add(p,mul(d,.1)), R, branch:b.id});
+    }
+  }
+  grow([0,0,0],[0,1,0], r.u(sp.trunkH[0],sp.trunkH[1]), r.u(sp.trunkR[0],sp.trunkR[1]), 0, -1);
+  let H=0, W=0; for(const s of segs){H=Math.max(H,s.b[1]); W=Math.max(W,Math.hypot(s.b[0],s.b[2]));}
+  for(const c of clusters){H=Math.max(H,c.c[1]+c.R*.6); W=Math.max(W,Math.hypot(c.c[0],c.c[2])+c.R);}
+  return {sp:spKey, seed, segs, branches, clusters, H, W};
+}
+const frustum=(h,a,b)=>Math.PI*h*(a*a+a*b+b*b)/3;
 
-    function branch(x,y,angle,length,radius,depth,parentId){
-      var x2 = x + Math.cos(angle)*length;
-      var y2 = y + Math.sin(angle)*length;
-      var id = idc++;
-      segments.push({
-        id:id, parentId:(parentId===undefined?-1:parentId),
-        x1:x,y1:y,x2:x2,y2:y2,
-        radius:radius, length:length, depth:depth,
-        anisotropy:anisoFor(depth)
-      });
-
-      var maxDepth = 5;
-      var tooThin = radius < 0.0035 || length < 0.018;
-
-      if(depth < maxDepth && !tooThin){
-        var nBranches = (depth===0) ? 1 : (rng() < 0.82 ? 2 : 1);
-        var spread = 0.34 + rng()*0.30;
-        for(var i=0;i<nBranches;i++){
-          var sign = nBranches===1 ? (rng()<0.5?-1:1) : (i===0?-1:1);
-          var jitter = (rng()-0.5)*0.22;
-          var newAngle = angle + sign*spread + jitter;
-          var newLength = length * (0.66 + rng()*0.14);
-          var newRadius = radius * (0.60 + rng()*0.14);
-          branch(x2,y2,newAngle,newLength,newRadius,depth+1,id);
-        }
-      } else {
-        var clusterN = 3 + Math.floor(rng()*4);
-        for(var f=0; f<clusterN; f++){
-          var fr = 0.02 + rng()*0.045;
-          var fa = rng()*Math.PI*2;
-          foliage.push({
-            x: x2 + Math.cos(fa)*fr,
-            y: y2 + Math.sin(fa)*fr,
-            r: 0.012 + rng()*0.014,
-            anisotropy: 0.02 + rng()*0.22
-          });
-        }
+/* ------------------------------------------------------------------
+   2. Gaussianas 3D (lo que produciría la reconstrucción 3DGS)
+------------------------------------------------------------------ */
+function genGaussians(T, leaves){
+  const sp=SPECIES[T.sp], r=mkRng(T.seed*7+3), G=[];
+  for(const s of T.segs){
+    const d=sub(s.b,s.a), L=len(d), u=norm(d), [e1,e2]=perp(u), rm=(s.ra+s.rb)/2;
+    if(rm>0.025){
+      const nA=Math.max(4,Math.min(18,Math.ceil(2*Math.PI*rm/0.05))), nL=Math.max(1,Math.ceil(L/0.12));
+      for(let j=0;j<nL;j++) for(let k=0;k<nA;k++){
+        if(r()<.18) continue;
+        const t=(j+r())/nL, th=(k+r()*.6)/nA*2*Math.PI, rr=s.ra+(s.rb-s.ra)*t;
+        const rad=add(mul(e1,Math.cos(th)),mul(e2,Math.sin(th))), tan=cross(u,rad);
+        const s1=L/nL*.6*Math.exp(r.n()*.28), s2=2*Math.PI*rr/nA*.5*Math.exp(r.n()*.2);
+        G.push({p:add(add(s.a,mul(d,t)),mul(rad,rr)), ax:[u,tan,rad], s:[s1,s2,0.004], cls:'w', seg:s.idx, op:.9, col:barkCol(r)});
+      }
+    } else {
+      const nL=Math.max(1,Math.ceil(L/0.07));
+      for(let j=0;j<nL;j++){
+        const t=(j+r())/nL, rr=s.ra+(s.rb-s.ra)*t;
+        const s1=L/nL*.62*Math.exp(r.n()*.3), s2=Math.max(rr,0.004)*1.05*Math.exp(r.n()*.25);
+        G.push({p:add(add(s.a,mul(d,t)),mul(randUnit(r),rr*.3)), ax:[u,e1,e2], s:[s1,s2,s2*.8], cls:'w', seg:s.idx, op:.9, col:barkCol(r)});
       }
     }
-
-    branch(0.5, 0.95, -Math.PI/2 + (rng()-0.5)*0.05, 0.40 + rng()*0.05, 0.052 + rng()*0.01, 0, -1);
-
-    // Fit the generated crown inside a safe margin so it never spills
-    // outside the canvas, whatever shape the random branching produced.
-    (function fitToCanvas(){
-      var anchorX = 0.5, anchorY = 0.95;
-      var minX = anchorX, maxX = anchorX, minY = anchorY;
-
-      segments.forEach(function(s){
-        minX = Math.min(minX, s.x1, s.x2); maxX = Math.max(maxX, s.x1, s.x2);
-        minY = Math.min(minY, s.y1, s.y2);
-      });
-      foliage.forEach(function(g){
-        minX = Math.min(minX, g.x - g.r); maxX = Math.max(maxX, g.x + g.r);
-        minY = Math.min(minY, g.y - g.r);
-      });
-
-      var leftRoom = anchorX - 0.08, rightRoom = 0.92 - anchorX, topRoom = anchorY - 0.08;
-      var scale = 1;
-      if (maxX > anchorX) scale = Math.min(scale, rightRoom / (maxX - anchorX));
-      if (minX < anchorX) scale = Math.min(scale, leftRoom / (anchorX - minX));
-      if (minY < anchorY) scale = Math.min(scale, topRoom / (anchorY - minY));
-
-      if (scale < 1){
-        segments.forEach(function(s){
-          s.x1 = anchorX + (s.x1 - anchorX) * scale;
-          s.x2 = anchorX + (s.x2 - anchorX) * scale;
-          s.y1 = anchorY + (s.y1 - anchorY) * scale;
-          s.y2 = anchorY + (s.y2 - anchorY) * scale;
-          s.radius *= scale;
-          s.length *= scale;
-        });
-        foliage.forEach(function(g){
-          g.x = anchorX + (g.x - anchorX) * scale;
-          g.y = anchorY + (g.y - anchorY) * scale;
-          g.r *= scale;
-        });
-      }
-    })();
-
-    var nNoise = 12 + Math.floor(rng()*8);
-    for(var n=0;n<nNoise;n++){
-      noise.push({
-        x: 0.16 + rng()*0.68,
-        y: 0.14 + rng()*0.55,
-        r: 0.010 + rng()*0.014,
-        anisotropy: 0.26 + rng()*0.28
-      });
-    }
-
-    var byId = {};
-    var childrenOf = {};
-    segments.forEach(function(s){
-      byId[s.id]=s;
-      if(!childrenOf[s.parentId]) childrenOf[s.parentId]=[];
-      childrenOf[s.parentId].push(s.id);
-    });
-
-    return {segments:segments, foliage:foliage, noise:noise, byId:byId, childrenOf:childrenOf};
   }
-
-  // ---------- Connectivity / variables ----------
-  function computeReachable(tree, threshold){
-    var reachable = {};
-    var root = tree.childrenOf[-1] ? tree.byId[tree.childrenOf[-1][0]] : null;
-    if(!root) return reachable;
-    var stack = [];
-    if(root.anisotropy >= threshold){
-      reachable[root.id]=true;
-      stack.push(root.id);
-    }
-    while(stack.length){
-      var id = stack.pop();
-      var kids = tree.childrenOf[id] || [];
-      kids.forEach(function(cid){
-        var c = tree.byId[cid];
-        if(c.anisotropy >= threshold){
-          reachable[cid]=true;
-          stack.push(cid);
-        }
-      });
-    }
-    return reachable;
-  }
-
-  function computeVariables(tree, threshold){
-    var reachable = computeReachable(tree, threshold);
-    var reachIds = Object.keys(reachable);
-    var totalLen = 0, totalVol = 0, minY = 0.95, count = 0;
-
-    reachIds.forEach(function(idStr){
-      var s = tree.byId[idStr];
-      count++;
-      totalLen += s.length;
-      var rM = s.radius*RADIUS_SCALE;
-      var lM = s.length*HEIGHT_SCALE;
-      totalVol += Math.PI*rM*rM*lM;
-      minY = Math.min(minY, s.y1, s.y2);
-    });
-
-    var heightM = count>0 ? (0.95 - minY)*HEIGHT_SCALE : 0;
-    var lengthM = totalLen*HEIGHT_SCALE;
-    var volumeL = totalVol*1000;
-    var coverage = tree.segments.length ? (count/tree.segments.length*100) : 0;
-
-    var root = tree.childrenOf[-1] ? tree.byId[tree.childrenOf[-1][0]] : null;
-    var baseDiamCm = root ? root.radius*RADIUS_SCALE*2*100 : 0;
-
-    var fpItems = tree.foliage.concat(tree.noise);
-    var fpCount = fpItems.filter(function(g){return g.anisotropy>=threshold;}).length;
-    var fpPct = fpItems.length ? (fpCount/fpItems.length*100) : 0;
-
-    var orphanCount = 0;
-    tree.segments.forEach(function(s){
-      if(s.anisotropy>=threshold && !reachable[s.id]) orphanCount++;
-    });
-
-    return {
-      reachable:reachable, branchCount:count, heightM:heightM, lengthM:lengthM,
-      volumeL:volumeL, coverage:coverage, baseDiamCm:baseDiamCm,
-      fpPct:fpPct, orphanCount:orphanCount
-    };
-  }
-
-  // ---------- Drawing helpers ----------
-  function drawEllipseSeg(ctx, s, W, H, fill, alpha, minWidth){
-    var x1=s.x1*W, y1=s.y1*H, x2=s.x2*W, y2=s.y2*H;
-    var mx=(x1+x2)/2, my=(y1+y2)/2;
-    var dx=x2-x1, dy=y2-y1;
-    var len = Math.sqrt(dx*dx+dy*dy);
-    var ang = Math.atan2(dy,dx);
-    var elong = 0.55 + s.anisotropy*0.55;
-    var lengthPx = Math.max(len*elong, 6);
-    var widthPx = Math.max(s.radius*H*2*(1.15-s.anisotropy*0.35), minWidth||3);
-
-    ctx.save();
-    ctx.translate(mx,my);
-    ctx.rotate(ang);
-    ctx.globalAlpha = alpha;
-    ctx.fillStyle = fill;
-    ctx.beginPath();
-    ctx.ellipse(0,0,lengthPx/2,widthPx/2,0,0,Math.PI*2);
-    ctx.fill();
-    ctx.restore();
-  }
-
-  function drawDot(ctx, g, W, H, fill, alpha){
-    ctx.save();
-    ctx.globalAlpha = alpha;
-    ctx.fillStyle = fill;
-    ctx.beginPath();
-    ctx.ellipse(g.x*W, g.y*H, g.r*W*1.2*(0.6+g.anisotropy*0.3), g.r*H*0.9, 0, 0, Math.PI*2);
-    ctx.fill();
-    ctx.restore();
-  }
-
-  // ---------- App state ----------
-  var canvas = document.getElementById('tree');
-  var ctx = canvas.getContext('2d');
-  var threshSlider = document.getElementById('thresh');
-  var threshVal = document.getElementById('threshVal');
-  var threshHint = document.getElementById('threshHint');
-  var caption = document.getElementById('caption');
-  var readoutEl = document.getElementById('readout');
-  var legendEl = document.getElementById('legend');
-  var modeButtons = Array.prototype.slice.call(document.querySelectorAll('.mode-btn'));
-  var regenBtn = document.getElementById('regen');
-
-  var state = {
-    mode: 0,
-    threshold: 0.45,
-    tree: generateTree(Math.floor(Math.random()*1e9))
-  };
-
-  var COLORS = {
-    trunkOn: '#C9A374',
-    trunkOff: 'rgba(207,198,172,0.16)',
-    foliage: 'rgba(110,145,100,0.55)',
-    noise: 'rgba(160,150,130,0.42)',
-    warn: '#C7735F',
-    teal: '#3C8477',
-    ghost: 'rgba(220,214,192,0.10)'
-  };
-
-  function fitCanvas(){
-    var box = canvas.parentElement;
-    var rect = box.getBoundingClientRect();
-    var dpr = window.devicePixelRatio || 1;
-    canvas.width = Math.round(rect.width*dpr);
-    canvas.height = Math.round(rect.height*dpr);
-    ctx.setTransform(dpr,0,0,dpr,0,0);
-    render();
-  }
-
-  function clear(){
-    var W = canvas.clientWidth, H = canvas.clientHeight;
-    ctx.clearRect(0,0,W,H);
-    ctx.fillStyle = '#171D16';
-    ctx.fillRect(0,0,W,H);
-  }
-
-  function render(){
-    var W = canvas.clientWidth, H = canvas.clientHeight;
-    clear();
-    ctx.save();
-    ctx.beginPath();
-    ctx.rect(0,0,W,H);
-    ctx.clip();
-    var tree = state.tree;
-    var th = state.threshold;
-
-    if(state.mode===0){
-      tree.segments.forEach(function(s){ drawEllipseSeg(ctx,s,W,H,'#CFC6AC',0.42,3); });
-      tree.foliage.forEach(function(g){ drawDot(ctx,g,W,H,COLORS.foliage,0.55); });
-      tree.noise.forEach(function(g){ drawDot(ctx,g,W,H,COLORS.noise,0.45); });
-    }
-
-    if(state.mode===1){
-      tree.segments.forEach(function(s){
-        if(s.anisotropy>=th){ drawEllipseSeg(ctx,s,W,H,COLORS.trunkOn,0.92,3); }
-        else { drawEllipseSeg(ctx,s,W,H,'#DCD6C0',0.16,2); }
-      });
-      tree.foliage.concat(tree.noise).forEach(function(g){
-        if(g.anisotropy>=th){ drawDot(ctx,g,W,H,COLORS.warn,0.85); }
-        else { drawDot(ctx,g,W,H, g.r<0.02? COLORS.foliage:COLORS.noise, 0.4); }
-      });
-    }
-
-    if(state.mode===2 || state.mode===3){
-      tree.segments.forEach(function(s){ drawEllipseSeg(ctx,s,W,H,COLORS.ghost,1,2); });
-      var reach = computeReachable(tree, th);
-      tree.segments.forEach(function(s){
-        var isReach = !!reach[s.id];
-        var isDetectedOnly = s.anisotropy>=th && !isReach;
-        if(isDetectedOnly){
-          ctx.save();
-          ctx.strokeStyle = 'rgba(60,132,119,0.55)';
-          ctx.setLineDash([4,4]);
-          ctx.lineWidth = Math.max(1.4, s.radius*H*1.4);
-          ctx.beginPath();
-          ctx.moveTo(s.x1*W,s.y1*H);
-          ctx.lineTo(s.x2*W,s.y2*H);
-          ctx.stroke();
-          ctx.restore();
-        }
-      });
-      tree.segments.forEach(function(s){
-        if(!reach[s.id]) return;
-        ctx.save();
-        ctx.strokeStyle = COLORS.teal;
-        ctx.lineCap = 'round';
-        ctx.lineWidth = Math.max(2.2, s.radius*H*1.9);
-        ctx.beginPath();
-        ctx.moveTo(s.x1*W,s.y1*H);
-        ctx.lineTo(s.x2*W,s.y2*H);
-        ctx.stroke();
-        ctx.restore();
-      });
-      tree.segments.forEach(function(s){
-        if(!reach[s.id]) return;
-        ctx.save();
-        ctx.fillStyle = '#EAF2EE';
-        ctx.beginPath();
-        ctx.ellipse(s.x2*W, s.y2*H, 2.6, 2.6, 0, 0, Math.PI*2);
-        ctx.fill();
-        ctx.restore();
-      });
-
-      if(state.mode===3){
-        var vars = computeVariables(tree, th);
-        var root = tree.childrenOf[-1] ? tree.byId[tree.childrenOf[-1][0]] : null;
-        if(root){
-          var baseX = root.x1*W, baseY = root.y1*H;
-          var topY = baseY - vars.heightM/HEIGHT_SCALE*H;
-          var lineX = Math.max(30, baseX - W*0.30);
-          ctx.save();
-          ctx.strokeStyle = 'rgba(231,226,208,0.55)';
-          ctx.fillStyle = 'rgba(231,226,208,0.85)';
-          ctx.lineWidth = 1;
-          ctx.beginPath();
-          ctx.moveTo(lineX, baseY);
-          ctx.lineTo(lineX, topY);
-          ctx.moveTo(lineX-5, baseY); ctx.lineTo(lineX+5, baseY);
-          ctx.moveTo(lineX-5, topY); ctx.lineTo(lineX+5, topY);
-          ctx.stroke();
-          ctx.font = '11px "Space Mono", monospace';
-          ctx.save();
-          ctx.translate(lineX-10, (baseY+topY)/2);
-          ctx.rotate(-Math.PI/2);
-          ctx.textAlign = 'center';
-          ctx.fillText('altura ≈ '+vars.heightM.toFixed(1)+' m', 0, 0);
-          ctx.restore();
-
-          ctx.beginPath();
-          var dPx = vars.baseDiamCm/100/RADIUS_SCALE*H*0.5;
-          ctx.moveTo(baseX-dPx, baseY+14);
-          ctx.lineTo(baseX+dPx, baseY+14);
-          ctx.stroke();
-          ctx.textAlign = 'center';
-          ctx.fillText('Ø base ≈ '+vars.baseDiamCm.toFixed(0)+' cm', baseX, baseY+28);
-          ctx.restore();
-        }
+  if(leaves){
+    for(const c of T.clusters){
+      const n=Math.round(r.u(sp.leafN[0],sp.leafN[1])*c.R/0.45);
+      for(let i=0;i<n;i++){
+        const dir=randUnit(r), rad=c.R*Math.pow(r(),1/2.4);
+        const u=randUnit(r), [a2,a3]=perp(u);
+        const s1=0.045*Math.exp(r.n()*.25), ratio=1+(sp.leafRatio-1)*Math.exp(r.n()*.7);
+        const lc=sp.leafCol[i%3];
+        G.push({p:add(c.c,[dir[0]*rad,dir[1]*rad*.8,dir[2]*rad]), ax:[u,a2,a3], s:[s1,s1/ratio,0.004], cls:'f', seg:-1, op:.82, col:lc.map(v=>v+r.n()*10)});
       }
     }
-    ctx.restore();
   }
-
-  function updateReadout(){
-    var vars = computeVariables(state.tree, state.threshold);
-    var rows = [
-      ['Ramas reconectadas', vars.branchCount + ' / ' + state.tree.segments.length],
-      ['Cobertura de la estructura', vars.coverage.toFixed(0)+'%'],
-      ['Altura estimada', vars.heightM.toFixed(2)+' m'],
-      ['Longitud total', vars.lengthM.toFixed(1)+' m'],
-      ['Diámetro de base', vars.baseDiamCm.toFixed(1)+' cm'],
-      ['Volumen aproximado', vars.volumeL.toFixed(1)+' L'],
-      ['Fragmentos huérfanos', String(vars.orphanCount)],
-      ['Falsos positivos (hoja/ruido)', vars.fpPct.toFixed(0)+'%']
-    ];
-    readoutEl.innerHTML = rows.map(function(r){
-      var warn = (r[0].indexOf('Falsos')===0 && vars.fpPct>15) || (r[0].indexOf('huérfanos')>-1 && vars.orphanCount>3);
-      return '<div class="row"><span class="k">'+r[0]+'</span><span class="v'+(warn?' warn':'')+'">'+r[1]+'</span></div>';
-    }).join('');
+  const nNoise=Math.round(G.length*0.035);
+  for(let i=0;i<nNoise;i++){
+    const u=randUnit(r), [a2,a3]=perp(u), s1=r.u(.02,.07), ratio=r.u(1,4.2);
+    G.push({p:[r.u(-T.W-.4,T.W+.4), r.u(0.1,T.H+.4), r.u(-T.W-.4,T.W+.4)], ax:[u,a2,a3], s:[s1,s1/ratio,s1/ratio*.7], cls:'n', seg:-1, op:.32, col:[170,170,178]});
   }
+  for(const g of G) g.ratio=g.s[0]/g.s[1];
+  return G;
+}
+function barkCol(r){const k=r.n()*14;return[140+k,96+k*.8,62+k*.6]}
 
-  var CAPTIONS = [
-    'Fase 2 — Reconstrucción 3DGS. Aún no se distingue madera de follaje: todo es una nube densa de gaussianas.',
-    'Fase 3 — Identificación de gaussianas estructurales. El umbral de anisotropía decide qué gaussiana cuenta como madera; el rojo marca hoja o ruido detectados por error.',
-    'Fase 4 — Esqueletización. Solo las gaussianas conectadas desde el tronco forman el esqueleto; el resto queda huérfano o descartado.',
-    'Fase 5 — Extracción de variables. Altura, diámetro y volumen se calculan sobre el esqueleto reconstruido, no sobre el árbol real.'
-  ];
-
-  var LEGENDS = [
-    [['#CFC6AC','Gaussianas de madera'], [COLORS.foliage,'Follaje'], [COLORS.noise,'Ruido de reconstrucción']],
-    [[COLORS.trunkOn,'Detectado como madera'], ['#DCD6C0','No detectado (bajo el umbral)'], [COLORS.warn,'Falso positivo']],
-    [[COLORS.teal,'Esqueleto conectado'], ['rgba(60,132,119,0.7)','Fragmento huérfano'], [COLORS.ghost,'Descartado']],
-    [[COLORS.teal,'Esqueleto'], ['#E7E2D0','Medida derivada']]
-  ];
-
-  function updateChrome(){
-    caption.textContent = CAPTIONS[state.mode];
-    legendEl.innerHTML = LEGENDS[state.mode].map(function(l){
-      return '<span><span class="swatch" style="background:'+l[0]+'"></span>'+l[1]+'</span>';
-    }).join('');
-    threshSlider.disabled = state.mode===0;
-    threshHint.style.opacity = state.mode===0 ? 0.4 : 1;
+/* ------------------------------------------------------------------
+   3. Cámaras y visibilidad (Fase 1)
+------------------------------------------------------------------ */
+function makeCams(n, T){
+  const cams=[], half=Math.ceil(n/2);
+  for(let i=0;i<n;i++){
+    const ring=i<half?0:1, k=ring?i-half:i, m=ring?n-half:half;
+    const a=k/m*2*Math.PI+(ring?Math.PI/m:0);
+    const R=ring?T.W*1.5+3.2:T.W*1.3+3.6, y=ring?T.H*1.15+1:T.H*.45;
+    cams.push([R*Math.cos(a), y, R*Math.sin(a)]);
   }
-
-  function setMode(m){
-    state.mode = m;
-    modeButtons.forEach(function(b){ b.classList.toggle('active', Number(b.dataset.mode)===m); });
-    updateChrome();
-    render();
-  }
-
-  modeButtons.forEach(function(b){
-    b.addEventListener('click', function(){ setMode(Number(b.dataset.mode)); });
+  return cams;
+}
+function visibility(T, G, nViews, leaves){
+  const cams=makeCams(nViews,T), dens=SPECIES[T.sp].leafDens, CL=leaves?T.clusters:[];
+  G.forEach((g,gi)=>{
+    if(g.cls!=='w'){g.vis=nViews;return;}
+    let ok=0;
+    for(let ci=0;ci<cams.length;ci++){
+      const C=cams[ci], dv=sub(g.p,C), L2=dot(dv,dv); let blocked=false;
+      for(let k=0;k<CL.length && !blocked;k++){
+        const cl=CL[k], w=sub(cl.c,C), t=dot(w,dv)/L2;
+        if(t<=0) continue;
+        const tt=Math.min(t,1), q=add(C,mul(dv,tt)), dd=len(sub(q,cl.c));
+        if(dd<cl.R){
+          const chord=Math.sqrt(cl.R*cl.R-dd*dd)*(t>1?1:2);
+          if(hash3(gi,ci,k)<dens*Math.min(1,chord/(2*cl.R))*1.35) blocked=true;
+        }
+      }
+      if(!blocked) ok++;
+    }
+    g.vis=ok;
   });
+  return cams;
+}
+function observed(g, T){const s=T.segs[g.seg];const thin=(s.ra+s.rb)/2<0.01;return g.vis>=(thin?5:3)}
 
-  threshSlider.addEventListener('input', function(){
-    state.threshold = Number(threshSlider.value);
-    threshVal.textContent = state.threshold.toFixed(2);
-    render();
-    updateReadout();
+/* ------------------------------------------------------------------
+   4. Clasificación por atributos (Fase 3)
+------------------------------------------------------------------ */
+function classify(G, thr, useFilter){
+  for(const g of G){ g.pred = g.ratio>=thr ? 'w' : (g.op<0.5 ? 'n' : 'f'); }
+  if(!useFilter) return;
+  const cell=0.13, grid=new Map(), key=(x,y,z)=>x+','+y+','+z;
+  G.forEach((g,i)=>{const k=key(Math.floor(g.p[0]/cell),Math.floor(g.p[1]/cell),Math.floor(g.p[2]/cell));(grid.get(k)||grid.set(k,[]).get(k)).push(i)});
+  const support=G.map(g=>{
+    let c=0; const cx=Math.floor(g.p[0]/cell), cy=Math.floor(g.p[1]/cell), cz=Math.floor(g.p[2]/cell);
+    for(let a=-1;a<=1;a++)for(let b=-1;b<=1;b++)for(let d=-1;d<=1;d++){
+      const L=grid.get(key(cx+a,cy+b,cz+d)); if(!L) continue;
+      for(const j of L){const h=G[j]; if(h===g||h.pred!=='w')continue;
+        const v=sub(h.p,g.p); if(dot(v,v)<cell*cell && Math.abs(dot(h.ax[0],g.ax[0]))>0.8) c++;}
+    }
+    return c;
   });
-
-  regenBtn.addEventListener('click', function(){
-    state.tree = generateTree(Math.floor(Math.random()*1e9));
-    render();
-    updateReadout();
+  G.forEach((g,i)=>{
+    if(g.pred==='w' && support[i]<2) g.pred = g.op<0.5?'n':'f';
+    else if(g.pred!=='w' && g.ratio>=thr*0.65 && support[i]>=3 && g.op>0.5) g.pred='w';
   });
+}
 
-  window.addEventListener('resize', fitCanvas);
+/* ------------------------------------------------------------------
+   5. Esqueleto y variables (Fases 4 y 5)
+------------------------------------------------------------------ */
+function skeletonize(T, G){
+  const tot=new Array(T.segs.length).fill(0), hit=new Array(T.segs.length).fill(0);
+  for(const g of G){ if(g.cls!=='w') continue; tot[g.seg]++; if(g.pred==='w' && observed(g,T)) hit[g.seg]++; }
+  const r=mkRng(T.seed*13+5);
+  T.segs.forEach((s,i)=>{
+    s.det = tot[i]>0 && hit[i]/tot[i]>=0.5;
+    const rm=(s.ra+s.rb)/2, bias=1+0.04+r.n()*0.06, extra=rm<0.02?0.0018:0;
+    s.era=s.ra*bias+extra; s.erb=s.rb*bias+extra;
+    s.ea=add(s.a,[r.n()*.008,r.n()*.008,r.n()*.008]); s.eb=add(s.b,[r.n()*.008,r.n()*.008,r.n()*.008]);
+  });
+}
+function variables(T){
+  const ref={}, est={};
+  ref.H=0; est.H=0; ref.len=0; est.len=0; ref.vol=0; est.vol=0;
+  for(const s of T.segs){
+    const L=len(sub(s.b,s.a)); ref.len+=L; ref.vol+=frustum(L,s.ra,s.rb); ref.H=Math.max(ref.H,s.b[1]);
+    if(s.det){const Le=len(sub(s.eb,s.ea)); est.len+=Le; est.vol+=frustum(Le,s.era,s.erb); est.H=Math.max(est.H,s.eb[1]);}
+  }
+  const tr=T.branches[0].segs.map(i=>T.segs[i]);
+  const s0=tr.find(s=>s.a[1]<=0.3 && s.b[1]>=0.3)||tr[0], t=(0.3-s0.a[1])/((s0.b[1]-s0.a[1])||1);
+  ref.D=2*(s0.ra+(s0.rb-s0.ra)*t); est.D=s0.det?2*(s0.era+(s0.erb-s0.era)*t):NaN;
+  ref.nb=T.branches.length-1; est.nb=0;
+  for(const b of T.branches){ if(b.level===0) continue; const k=b.segs.filter(i=>T.segs[i].det).length; if(k/b.segs.length>=0.5) est.nb++; }
+  return {ref, est};
+}
+function runPipeline(T, st){
+  const G=genGaussians(T, st.leaves);
+  const cams=visibility(T, G, st.views, st.leaves);
+  classify(G, st.thr, st.filter);
+  skeletonize(T, G);
+  return {G, cams, V:variables(T)};
+}
 
-  threshVal.textContent = state.threshold.toFixed(2);
-  updateChrome();
-  fitCanvas();
-  updateReadout();
-})();
+/* ------------------------------------------------------------------
+   Estado global
+------------------------------------------------------------------ */
+const S={species:'almendro', leaves:true, views:24, thr:2.0, filter:true, dens:0.75, ha:250, mode:'natural'};
+const SEED={almendro:11, pistacho:29};
+let T=null, R=null, sampleW=-1, sampleL=-1;
+
+function rebuild(regenTree){
+  if(regenTree || !T) T=genTree(S.species, SEED[S.species]);
+  R=runPipeline(T, S);
+  pickSamples();
+  recolor(); updateReadouts(); drawHist(); fitView();
+}
+function recompute(){ // mismo árbol, nuevas opciones
+  const G=R.G;
+  if(recompute.views!==S.views || recompute.leaves!==S.leaves){ rebuild(false); recompute.views=S.views; recompute.leaves=S.leaves; return; }
+  classify(G, S.thr, S.filter); skeletonize(T, G); R.V=variables(T);
+  recolor(); updateReadouts(); drawHist();
+}
+function pickSamples(){
+  sampleW=-1; sampleL=-1;
+  R.G.forEach((g,i)=>{
+    if(sampleW<0 && g.cls==='w' && T.segs[g.seg].level===2 && g.ratio>3 && g.ratio<6) sampleW=i;
+    if(sampleL<0 && g.cls==='f' && g.ratio<1.35 && g.p[1]>T.H*.6) sampleL=i;
+  });
+}
+
+/* ------------------------------------------------------------------
+   Render (proyección de covarianzas 3D a elipses 2D: splatting)
+------------------------------------------------------------------ */
+const cv=document.getElementById('view'), ctx=cv.getContext('2d');
+const reduceMotion=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+let W=0,Hh=0,DPR=1, yaw=0.6, pitch=0.16, focal=600, dist=12, target=[0,2.2,0], dragging=false, lastX=0, autoRot=!reduceMotion, visible=true;
+function fitView(){
+  const rect=cv.getBoundingClientRect(); DPR=Math.min(2,window.devicePixelRatio||1);
+  W=rect.width; Hh=rect.height; cv.width=Math.round(W*DPR); cv.height=Math.round(Hh*DPR);
+  if(!T) return;
+  target=[0,T.H*0.47,0]; dist=Math.max(T.H,2*T.W)*2.6;
+  const E=Math.max(T.H, 2*T.W)*1.12;
+  focal=0.95*Math.min(Hh*0.86, W)*dist/E;
+}
+function camBasis(){
+  const cp=Math.cos(pitch), pos=add(target,[dist*cp*Math.sin(yaw), dist*Math.sin(pitch), dist*cp*Math.cos(yaw)]);
+  const f=norm(sub(target,pos)), r=norm(cross(f,[0,1,0])), u=cross(r,f);
+  return {pos,f,r,u};
+}
+const COL={bark:[154,106,69], pist:[167,201,87], lilac:[185,179,201], flag:[209,73,91], teal:[70,170,145], blossom:[244,182,194]};
+function recolor(){
+  const m=S.mode;
+  for(let i=0;i<R.G.length;i++){
+    const g=R.G[i]; let c=g.col, a=g.op;
+    if(m==='acq'){
+      if(g.cls==='w'){ c = observed(g,T)?COL.bark:COL.flag; a=.95; }
+      else { a*= g.cls==='f'?0.28:0.12; }
+    } else if(m==='ident'){
+      c = g.pred==='w'?COL.bark : g.pred==='f'?COL.pist : COL.lilac; a = g.pred==='n'?0.45:0.88;
+    } else if(m==='skel' || m==='vars' || m==='valid'){
+      a*=0.07;
+    } else if(m==='carbon'){
+      if(g.cls==='w'){ c=COL.teal; a=0.55; } else a*=0.05;
+    } else if(g.cls==='n'){ a*=0.6; }
+    g.rgba=`rgb(${c[0]|0},${c[1]|0},${c[2]|0})`; g.alpha=a;
+  }
+}
+function project(p, B){
+  const d=sub(p,B.pos), x=dot(d,B.r), y=dot(d,B.u), z=dot(d,B.f);
+  return {x,y,z, sx:W/2+focal*x/z, sy:Hh*0.5-focal*y/z};
+}
+function draw(){
+  if(!R) return;
+  ctx.setTransform(DPR,0,0,DPR,0,0);
+  ctx.fillStyle='#15201A'; ctx.fillRect(0,0,W,Hh);
+  const B=camBasis();
+  // suelo
+  ctx.strokeStyle='rgba(220,230,215,.14)'; ctx.lineWidth=1; ctx.beginPath();
+  for(let i=0;i<=64;i++){const a=i/64*2*Math.PI, P=project([Math.cos(a)*T.W*.85,0,Math.sin(a)*T.W*.85],B); i?ctx.lineTo(P.sx,P.sy):ctx.moveTo(P.sx,P.sy);} ctx.stroke();
+  // gaussianas
+  const G=R.G, list=[];
+  for(let i=0;i<G.length;i++){
+    const g=G[i]; if(g.alpha<0.02) continue;
+    const d=sub(g.p,B.pos), x=dot(d,B.r), y=dot(d,B.u), z=dot(d,B.f); if(z<0.3) continue;
+    const iz=focal/z, jx=-focal*x/(z*z), jy=focal*y/(z*z);
+    let a=0,b=0,c=0;
+    for(let k=0;k<3;k++){
+      const ax=g.ax[k], s=g.s[k]; const ac=[dot(ax,B.r),dot(ax,B.u),dot(ax,B.f)];
+      const vx=iz*ac[0]+jx*ac[2], vy=-iz*ac[1]+jy*ac[2];
+      a+=s*s*vx*vx; b+=s*s*vx*vy; c+=s*s*vy*vy;
+    }
+    const tr=(a+c)/2, df=Math.sqrt(((a-c)/2)**2+b*b), l1=tr+df, l2=Math.max(tr-df,1e-9);
+    list.push([z, W/2+focal*x/z, Hh*0.5-focal*y/z, Math.min(60,Math.max(.55,Math.sqrt(l1)*1.8)), Math.max(.45,Math.sqrt(l2)*1.8), 0.5*Math.atan2(2*b,a-c), i]);
+  }
+  list.sort((p,q)=>q[0]-p[0]);
+  for(const e of list){
+    const g=G[e[6]]; ctx.globalAlpha=g.alpha; ctx.fillStyle=g.rgba;
+    ctx.beginPath(); ctx.ellipse(e[1],e[2],e[3],e[4],e[5],0,6.2832); ctx.fill();
+  }
+  ctx.globalAlpha=1;
+  const m=S.mode;
+  if(m==='gs') markSamples(B);
+  if(m==='acq') drawCams(B);
+  if(m==='skel'||m==='vars'||m==='valid'||m==='carbon') drawSkeleton(B,m);
+  if(m==='vars') drawMeasures(B);
+}
+function markSamples(B){
+  [[sampleW,COL.bark],[sampleL,COL.pist]].forEach(([i,c])=>{
+    if(i<0) return; const P=project(R.G[i].p,B);
+    ctx.strokeStyle='#fff'; ctx.lineWidth=2; ctx.beginPath(); ctx.arc(P.sx,P.sy,12,0,6.2832); ctx.stroke();
+    ctx.strokeStyle=`rgb(${c})`; ctx.lineWidth=2; ctx.beginPath(); ctx.arc(P.sx,P.sy,15,0,6.2832); ctx.stroke();
+  });
+}
+function drawCams(B){
+  for(const C of R.cams){
+    const P=project(C,B); if(P.z<0.3) continue;
+    const Q=project(add(C,mul(norm(sub(target,C)),0.9)),B);
+    ctx.strokeStyle='rgba(244,182,194,.55)'; ctx.lineWidth=1.2; ctx.beginPath(); ctx.moveTo(P.sx,P.sy); ctx.lineTo(Q.sx,Q.sy); ctx.stroke();
+    ctx.fillStyle='#F4B6C2'; ctx.beginPath(); ctx.arc(P.sx,P.sy,3.6,0,6.2832); ctx.fill();
+  }
+}
+function drawSkeleton(B,m){
+  const segs=[...T.segs].map(s=>({s,z:project(mul(add(s.a,s.b),.5),B).z})).sort((p,q)=>q.z-p.z);
+  ctx.lineCap='round';
+  for(const {s} of segs){
+    if(m==='valid'){
+      const A=project(s.a,B), Bp=project(s.b,B);
+      ctx.setLineDash([4,4]); ctx.strokeStyle='rgba(255,255,255,.55)'; ctx.lineWidth=1; ctx.beginPath(); ctx.moveTo(A.sx,A.sy); ctx.lineTo(Bp.sx,Bp.sy); ctx.stroke(); ctx.setLineDash([]);
+      if(s.det){const a=project(s.ea,B), b=project(s.eb,B); ctx.strokeStyle='#F4B6C2'; ctx.lineWidth=Math.max(1.4, focal*(s.era+s.erb)/a.z*.5); ctx.globalAlpha=.8; ctx.beginPath(); ctx.moveTo(a.sx,a.sy); ctx.lineTo(b.sx,b.sy); ctx.stroke(); ctx.globalAlpha=1;}
+      continue;
+    }
+    const a=project(s.det?s.ea:s.a,B), b=project(s.det?s.eb:s.b,B);
+    if(!s.det){ if(m==='carbon') continue; ctx.setLineDash([3,4]); ctx.strokeStyle='rgba(154,165,157,.6)'; ctx.lineWidth=1; ctx.beginPath(); ctx.moveTo(a.sx,a.sy); ctx.lineTo(b.sx,b.sy); ctx.stroke(); ctx.setLineDash([]); continue; }
+    if(m==='carbon'){ ctx.strokeStyle='#5FC3A6'; ctx.lineWidth=Math.max(1.2, focal*(s.era+s.erb)/a.z); }
+    else { ctx.strokeStyle='#F4B6C2'; ctx.lineWidth=s.level===0?3:s.level===1?2.2:1.5; }
+    ctx.beginPath(); ctx.moveTo(a.sx,a.sy); ctx.lineTo(b.sx,b.sy); ctx.stroke();
+  }
+  if(m==='skel'){ ctx.fillStyle='#fff'; for(const s of T.segs){ if(!s.det) continue; const P=project(s.eb,B); ctx.beginPath(); ctx.arc(P.sx,P.sy,1.8,0,6.2832); ctx.fill(); } }
+}
+function drawMeasures(B){
+  const V=R.V.est; ctx.font='500 13px "Work Sans", system-ui, sans-serif'; ctx.fillStyle='#F4F7F1'; ctx.strokeStyle='#F4F7F1'; ctx.lineWidth=1.2;
+  const off=T.W+0.5; const r=B.r;
+  const g0=project(add(mul(r,off),[0,0,0]),B), g1=project(add(mul(r,off),[0,V.H,0]),B);
+  ctx.beginPath(); ctx.moveTo(g0.sx,g0.sy); ctx.lineTo(g1.sx,g1.sy);
+  ctx.moveTo(g0.sx-6,g0.sy); ctx.lineTo(g0.sx+6,g0.sy); ctx.moveTo(g1.sx-6,g1.sy); ctx.lineTo(g1.sx+6,g1.sy); ctx.stroke();
+  ctx.fillText('altura '+fmt(V.H,2)+' m', g1.sx+10, (g0.sy+g1.sy)/2);
+  if(Number.isFinite(V.D)){
+    const c=[0,0.3,0], a=project(add(c,mul(r,-V.D/2)),B), b=project(add(c,mul(r,V.D/2)),B);
+    ctx.beginPath(); ctx.moveTo(a.sx-14,a.sy); ctx.lineTo(b.sx+14,b.sy); ctx.stroke();
+    ctx.fillText('tronco '+fmt0(V.D*100)+' cm', b.sx+20, b.sy+4);
+  }
+}
+function loop(){
+  if(visible && autoRot && !dragging) yaw+=0.0022;
+  if(visible) draw();
+  requestAnimationFrame(loop);
+}
+cv.addEventListener('pointerdown',e=>{dragging=true;lastX=e.clientX;cv.setPointerCapture(e.pointerId)});
+cv.addEventListener('pointermove',e=>{if(!dragging)return;yaw-=(e.clientX-lastX)*0.008;lastX=e.clientX});
+['pointerup','pointercancel'].forEach(t=>cv.addEventListener(t,()=>{dragging=false}));
+window.addEventListener('resize',()=>{fitView()});
+new IntersectionObserver(es=>{visible=es[0].isIntersecting}).observe(cv);
+
+/* ------------------------------------------------------------------
+   Lecturas, gráficos y controles
+------------------------------------------------------------------ */
+const $=id=>document.getElementById(id);
+const pct=x=>fmt0(x*100)+' %';
+function updateReadouts(){
+  const G=R.G, V=R.V, wood=G.filter(g=>g.cls==='w');
+  const obs=wood.filter(g=>observed(g,T)).length, thin=wood.filter(g=>{const s=T.segs[g.seg];return (s.ra+s.rb)/2<0.01});
+  $('covAll').textContent=pct(obs/wood.length);
+  $('covThin').textContent=thin.length?pct(thin.filter(g=>observed(g,T)).length/thin.length):'—';
+  let tp=0,fp=0,fn=0; for(const g of G){ if(g.pred==='w'&&g.cls==='w')tp++; else if(g.pred==='w')fp++; else if(g.cls==='w')fn++; }
+  $('prec').textContent=fmt(tp/(tp+fp||1),2); $('rec').textContent=fmt(tp/(tp+fn||1),2);
+  const nd=T.segs.filter(s=>s.det).length;
+  $('segDet').textContent=`${nd} de ${T.segs.length}`; $('brDet').textContent=`${V.est.nb} de ${V.ref.nb}`;
+  const gdesc=i=>{ if(i<0) return '—'; const g=G[i]; return `Escalas ${fmt(g.s[0]*100,1)} cm y ${fmt(g.s[1]*100,1)} cm. Alargamiento ${fmt(g.ratio,1)}.`; };
+  $('gWood').textContent=gdesc(sampleW); $('gLeaf').textContent=gdesc(sampleL);
+  const e=V.est, r=V.ref;
+  $('varsList').innerHTML=`<dt>Altura de la estructura leñosa</dt><dd>${fmt(e.H,2)} m</dd><dt>Diámetro del tronco</dt><dd>${Number.isFinite(e.D)?fmt0(e.D*100)+' cm':'—'}</dd><dt>Número de ramas</dt><dd>${e.nb}</dd><dt>Longitud total de ramas</dt><dd>${fmt(e.len,1)} m</dd><dt>Volumen leñoso</dt><dd>${fmt0(e.vol*1000)} dm³</dd>`;
+  const row=(n,ev,rv,u,d)=>{const err=(ev-rv)/rv*100; const cls=err>=0?'pos':'neg'; return `<tr><td>${n}</td><td>${Number.isFinite(ev)?fmt(ev,d):'—'} ${u}</td><td>${fmt(rv,d)} ${u}</td><td class="${cls}">${Number.isFinite(err)?(err>0?'+':'')+fmt(err,1)+' %':'—'}</td></tr>`};
+  $('validTable').innerHTML=`<tr><th>Variable</th><th>Estimado</th><th>Referencia</th><th>Error</th></tr>`+
+    row('Altura',e.H,r.H,'m',2)+row('Diámetro del tronco',e.D*100,r.D*100,'cm',1)+row('Número de ramas',e.nb,r.nb,'',0)+row('Longitud de ramas',e.len,r.len,'m',1)+row('Volumen leñoso',e.vol*1000,r.vol*1000,'dm³',0);
+  updateCarbon();
+}
+function updateCarbon(){
+  const B=R.V.est.vol*S.dens*1000, C=B*0.47, CO2=C*44/12;
+  $('bOut').textContent=fmt0(B); $('cOut').textContent=fmt0(C); $('co2Out').textContent=fmt0(CO2);
+  $('haCO2').textContent=fmt(CO2*S.ha/1000,1);
+  $('haC').textContent=`Equivale a ${fmt(C*S.ha/1000,1)} t de carbono, con ${fmt0(CO2)} kg de CO₂ equivalente por árbol.`;
+}
+function setupCanvas(c){const r=c.getBoundingClientRect(),d=Math.min(2,window.devicePixelRatio||1);c.width=Math.round(r.width*d);c.height=Math.round(r.height*d);const x=c.getContext('2d');x.setTransform(d,0,0,d,0,0);return{x,w:r.width,h:r.height}}
+function drawHist(){
+  const c=$('hist'); if(!c.offsetWidth) return; const {x,w,h}=setupCanvas(c);
+  const lo=Math.log(1), hi=Math.log(9), nb=34, bins={w:new Array(nb).fill(0), f:new Array(nb).fill(0)};
+  for(const g of R.G){ if(g.cls==='n') continue; const k=Math.min(nb-1,Math.max(0,Math.floor((Math.log(g.ratio)-lo)/(hi-lo)*nb))); bins[g.cls][k]++; }
+  const mx=Math.max(...bins.w,...bins.f), pl=4, pb=22, bw=(w-pl*2)/nb;
+  x.clearRect(0,0,w,h); x.font='12px "Work Sans", system-ui, sans-serif';
+  [['f','rgba(167,201,87,.85)'],['w','rgba(154,106,69,.85)']].forEach(([k,col])=>{x.fillStyle=col; bins[k].forEach((v,i)=>{const bh=(h-pb-14)*v/mx; x.fillRect(pl+i*bw+1,h-pb-bh,bw-2,bh)})});
+  x.fillStyle='#4B5B52'; [1,2,3,5,8].forEach(v=>{const px=pl+(Math.log(v)-lo)/(hi-lo)*(w-pl*2); x.fillText(String(v),px-3,h-6)});
+  const tx=pl+(Math.log(S.thr)-lo)/(hi-lo)*(w-pl*2); x.strokeStyle='#1D2B24'; x.lineWidth=2; x.beginPath(); x.moveTo(tx,4); x.lineTo(tx,h-pb); x.stroke();
+  x.fillStyle='#1D2B24'; x.fillText('umbral',tx+5,14);
+  x.fillStyle='#9A6A45'; x.fillText('madera',w-60,14); x.fillStyle='#6E8C2F'; x.fillText('hojas',w-60,30);
+}
+function drawScatter(pts){
+  const c=$('scatter'); const {x,w,h}=setupCanvas(c); x.clearRect(0,0,w,h);
+  const mx=Math.max(...pts.flatMap(p=>[p.t,p.e]))*1.08, pl=40, pb=28, pt=10, pr=8;
+  const X=v=>pl+v/mx*(w-pl-pr), Y=v=>h-pb-v/mx*(h-pb-pt);
+  x.strokeStyle='#CFD7CB'; x.lineWidth=1; x.beginPath(); x.moveTo(X(0),Y(0)); x.lineTo(X(mx),Y(mx)); x.stroke();
+  x.strokeStyle='#1D2B24'; x.beginPath(); x.moveTo(pl,pt); x.lineTo(pl,h-pb); x.lineTo(w-pr,h-pb); x.stroke();
+  x.font='12px "Work Sans", system-ui, sans-serif'; x.fillStyle='#4B5B52';
+  x.textAlign='right'; x.fillText('Referencia (kg)', w-pr, h-8); x.fillText('0',pl-6,h-pb+4); x.fillText(fmt0(mx),pl-6,pt+22);
+  x.textAlign='left'; x.fillText('Estimado (kg)', pl+8, pt+12); x.fillStyle='#8C9A91'; x.fillText('1:1', X(mx)-24, Y(mx)+16);
+  for(const p of pts){ x.fillStyle='rgba(46,125,107,.85)'; x.beginPath(); x.arc(X(p.t),Y(p.e),4,0,6.2832); x.fill(); }
+}
+async function runValidation(){
+  const btn=$('runVal'); btn.disabled=true; btn.textContent='Validando…';
+  await new Promise(r=>setTimeout(r,30));
+  const pts=[];
+  for(let i=0;i<30;i++){
+    const t=genTree(S.species, 500+i*17); const res=runPipeline(t, S);
+    pts.push({t:res.V.ref.vol*S.dens*1000, e:res.V.est.vol*S.dens*1000});
+    if(i%6===5) await new Promise(r=>setTimeout(r,0));
+  }
+  const n=pts.length, mT=pts.reduce((a,p)=>a+p.t,0)/n, bias=pts.reduce((a,p)=>a+p.e-p.t,0)/n;
+  const rmse=Math.sqrt(pts.reduce((a,p)=>a+(p.e-p.t)**2,0)/n), ssr=pts.reduce((a,p)=>a+(p.e-p.t)**2,0), sst=pts.reduce((a,p)=>a+(p.t-mT)**2,0);
+  drawScatter(pts);
+  const st=$('valStats'); st.hidden=false;
+  st.innerHTML=`<dt>Sesgo</dt><dd>${bias>0?'+':''}${fmt(bias,1)} kg</dd><dt>RMSE</dt><dd>${fmt(rmse,1)} kg</dd><dt>RMSE relativo</dt><dd>${fmt(rmse/mT*100,1)} %</dd><dt>R²</dt><dd>${fmt(1-ssr/sst,2)}</dd>`;
+  btn.disabled=false; btn.textContent='Repetir validación con los ajustes actuales';
+}
+
+/* Controles */
+document.querySelectorAll('[data-species]').forEach(b=>b.addEventListener('click',()=>{
+  S.species=b.dataset.species; document.querySelectorAll('[data-species]').forEach(x=>x.setAttribute('aria-pressed',x===b));
+  rebuild(true); setPhase(S.modeStep||0);
+}));
+document.querySelectorAll('[data-leaves]').forEach(b=>b.addEventListener('click',()=>{
+  S.leaves=b.dataset.leaves==='1'; document.querySelectorAll('[data-leaves]').forEach(x=>x.setAttribute('aria-pressed',x===b)); recompute();
+}));
+$('views').addEventListener('input',e=>{S.views=+e.target.value; $('viewsOut').textContent=S.views; clearTimeout(recompute.t); recompute.t=setTimeout(recompute,60)});
+$('thr').addEventListener('input',e=>{S.thr=+e.target.value; $('thrOut').textContent=fmt(S.thr,1); recompute()});
+$('filter').addEventListener('change',e=>{S.filter=e.target.checked; recompute()});
+$('dens').addEventListener('input',e=>{S.dens=+e.target.value; $('densOut').textContent=fmt(S.dens,2)+' g/cm³'; updateCarbon()});
+$('ha').addEventListener('input',e=>{S.ha=+e.target.value; $('haOut').textContent=S.ha; updateCarbon()});
+$('runVal').addEventListener('click',runValidation);
+
+/* Fases al hacer scroll */
+const PH={
+  natural:{small:'Árbol sintético', title:()=>SPECIES[S.species].name, legend:''},
+  acq:{small:'Fase 1 de 7', title:()=>'Adquisición', legend:'<span><i style="background:#9A6A45"></i>Madera observada</span><span><i style="background:#D1495B"></i>Madera oculta</span><span><i style="background:#F4B6C2"></i>Posiciones de cámara</span>'},
+  gs:{small:'Fase 2 de 7', title:()=>'Reconstrucción 3DGS', legend:'<span>Cada mancha es una gaussiana 3D; los círculos marcan las dos del ejemplo</span>'},
+  ident:{small:'Fase 3 de 7', title:()=>'Identificación de gaussianas', legend:'<span><i style="background:#9A6A45"></i>Madera</span><span><i style="background:#A7C957"></i>Follaje</span><span><i style="background:#B9B3C9"></i>Ruido</span>'},
+  skel:{small:'Fase 4 de 7', title:()=>'Esqueletización', legend:'<span><i class="line" style="border-color:#F4B6C2"></i>Esqueleto recuperado</span><span><i class="dash"></i>Rama no recuperada</span>'},
+  vars:{small:'Fase 5 de 7', title:()=>'Extracción de variables', legend:'<span><i class="line" style="border-color:#F4B6C2"></i>Esqueleto</span><span><i class="line" style="border-color:#F4F7F1"></i>Medidas</span>'},
+  valid:{small:'Fase 6 de 7', title:()=>'Validación', legend:'<span><i class="line" style="border-color:#F4B6C2"></i>Estimado</span><span><i class="dash" style="border-color:#fff"></i>Geometría real</span>'},
+  carbon:{small:'Fase 7 de 7', title:()=>'Biomasa y carbono', legend:'<span><i style="background:#5FC3A6"></i>Madera que se contabiliza (sin hojas)</span>'}
+};
+const steps=[...document.querySelectorAll('.step')];
+function setPhase(i){
+  S.modeStep=i; const m=steps[i].dataset.mode; S.mode=m; const p=PH[m];
+  $('phaseSmall').textContent=p.small; $('phaseTitle').textContent=p.title(); $('legend').innerHTML=p.legend;
+  recolor();
+  if(m==='ident') drawHist();
+}
+const io=new IntersectionObserver(es=>{
+  const vis=es.filter(e=>e.isIntersecting).sort((a,b)=>b.intersectionRatio-a.intersectionRatio);
+  if(vis.length) setPhase(steps.indexOf(vis[0].target));
+},{rootMargin: window.matchMedia('(max-width: 900px)').matches ? '-58% 0px -22% 0px' : '-40% 0px -40% 0px', threshold:[0,.25,.5]});
+steps.forEach(s=>io.observe(s));
+
+recompute.views=S.views; recompute.leaves=S.leaves;
+fitView(); rebuild(true); setPhase(0); requestAnimationFrame(loop);
+window.addEventListener('load',()=>{fitView(); drawHist();});
 </script>
 </body>
 </html>
