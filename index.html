@@ -277,7 +277,7 @@ footer{padding:28px 28px calc(env(safe-area-inset-bottom,0px) + 28px);font-famil
       <h2>Validación: comparar con la geometría real</h2>
       <p>Como el árbol es sintético, su geometría exacta es conocida. En la tesis, esa referencia vendrá también de datasets con escaneo láser y, si es posible, de mediciones de campo.</p>
       <table class="vt" id="validTable" aria-label="Comparación de variables estimadas y de referencia"></table>
-      <p class="small">Fíjate en que pueden faltar muchas ramas finas y, aun así, el volumen cambia poco: la mayor parte de la madera está en el tronco y las ramas gruesas. En cambio, el grosor de las ramas finas tiende a sobreestimarse, lo que empuja el volumen hacia arriba.</p>
+      <p class="small">Pueden faltar muchas ramas finas y, aun así, el volumen cambia poco: la mayor parte de la madera está en el tronco y las ramas gruesas. En cambio, el grosor de las ramas finas tiende a sobreestimarse, lo que empuja el volumen hacia arriba.</p>
       <p>Un solo árbol no basta. La validación real repite el proceso sobre muchos árboles y resume el error con sesgo, RMSE y R².</p>
       <button type="button" class="btn" id="runVal">Validar sobre 30 árboles sintéticos</button>
       <canvas class="chart" id="scatter" style="height:220px" aria-label="Diagrama de dispersión de biomasa estimada frente a biomasa de referencia"></canvas>
