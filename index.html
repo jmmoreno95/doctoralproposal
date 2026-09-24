@@ -8,151 +8,160 @@
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🌳</text></svg>">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,400;0,500;0,600;1,400&family=Work+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=STIX+Two+Text:ital,wght@0,400;0,500;0,600;0,700;1,400;1,600&family=Source+Sans+3:wght@400;600&display=swap" rel="stylesheet">
 <style>
 :root{
-  --paper:#F2F4EF; --paper-2:#E7EBE3; --ink:#1D2B24; --ink-2:#4B5B52; --rule:#CFD7CB;
-  --view:#15201A; --bark:#9A6A45; --pist:#A7C957; --blossom:#F4B6C2; --teal:#2E7D6B;
-  --flag:#D1495B; --lilac:#B9B3C9;
-  --serif:"Spectral", Georgia, "Times New Roman", serif;
-  --sans:"Work Sans", "Segoe UI", system-ui, -apple-system, Roboto, Arial, sans-serif;
+  --paper:#FFFFFF; --paper-2:#F5F6F7; --ink:#222222; --ink-2:#555555; --rule:#D9D9D9; --rule-strong:#222222;
+  --accent:#1F3A5F; --bark:#8C5A2B; --foliage:#6A9A3A;
+  --serif:"STIX Two Text", "Times New Roman", Times, serif;
+  --sans:"Source Sans 3", "Helvetica Neue", Helvetica, Arial, sans-serif;
 }
 *{box-sizing:border-box}
 html{scroll-behavior:smooth}
 @media (prefers-reduced-motion: reduce){html{scroll-behavior:auto}}
-body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--serif);font-size:18px;line-height:1.6;-webkit-font-smoothing:antialiased}
-a{color:var(--teal)}
-:focus-visible{outline:3px solid var(--teal);outline-offset:2px}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--serif);font-size:18px;line-height:1.62;-webkit-font-smoothing:antialiased;font-variant-numeric:lining-nums}
+a{color:var(--accent)}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 
-/* top bar */
-.top{position:sticky;top:0;z-index:20;background:rgba(242,244,239,.94);backdrop-filter:blur(6px);border-bottom:1px solid var(--rule);
-  padding:calc(env(safe-area-inset-top,0px) + 10px) 24px 10px;display:flex;gap:24px;align-items:baseline;justify-content:space-between;font-family:var(--sans);font-size:14px}
-.top b{font-weight:600}
-.top nav{display:flex;gap:18px;flex-wrap:wrap}
+/* cabecera */
+.top{position:sticky;top:0;z-index:20;background:#fff;border-bottom:1px solid var(--rule);
+  padding:calc(env(safe-area-inset-top,0px) + 11px) 28px 11px;display:flex;gap:24px;align-items:baseline;justify-content:space-between;font-family:var(--sans);font-size:15px}
+.top b{font-family:var(--serif);font-weight:600;font-size:17px}
+.top nav{display:flex;gap:22px;flex-wrap:wrap}
 .top nav a{color:var(--ink-2);text-decoration:none}
-.top nav a:hover{color:var(--ink);text-decoration:underline}
+.top nav a:hover{color:var(--accent);text-decoration:underline;text-underline-offset:3px}
 
-/* story: sticky stage + steps */
+/* historia: figura fija + texto */
 .story{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(340px,.85fr);gap:0}
-.stage{position:sticky;top:49px;height:calc(100vh - 49px);background:var(--view);overflow:hidden}
-.stage canvas{display:block;width:100%;height:100%;touch-action:pan-y;cursor:grab}
+.stage{position:sticky;top:49px;height:calc(100vh - 49px);background:#fff;padding:20px 20px 20px 28px}
+.stage canvas{display:block;width:100%;height:100%;touch-action:pan-y;cursor:grab;border:1px solid var(--rule)}
 .stage canvas:active{cursor:grabbing}
-.stage .phase{position:absolute;left:20px;top:16px;font-family:var(--sans);font-size:13px;color:#DDE5D8;letter-spacing:.01em}
-.stage .phase strong{display:block;font-family:var(--serif);font-size:22px;font-weight:500;color:#F4F7F1}
-.stage .legend{position:absolute;left:20px;bottom:16px;display:flex;flex-wrap:wrap;gap:6px 16px;font-family:var(--sans);font-size:13px;color:#DDE5D8;max-width:calc(100% - 40px)}
+.stage .phase{position:absolute;left:46px;top:36px;font-family:var(--sans);font-size:14px;color:var(--ink-2)}
+.stage .phase strong{display:block;font-family:var(--serif);font-size:22px;font-weight:600;color:var(--ink);line-height:1.2}
+.stage .legend{position:absolute;left:46px;bottom:36px;display:flex;flex-wrap:wrap;gap:4px 18px;font-family:var(--sans);font-size:14px;color:var(--ink);
+  max-width:calc(100% - 92px);background:rgba(255,255,255,.9);border:1px solid var(--rule);padding:5px 10px}
+.stage .legend:empty{display:none}
 .stage .legend span{display:inline-flex;align-items:center;gap:7px}
-.stage .legend i{width:11px;height:11px;border-radius:50%;display:inline-block}
-.stage .legend i.dash{border-radius:0;height:0;width:16px;border-top:2px dashed #9AA59D}
-.stage .legend i.line{border-radius:0;height:0;width:16px;border-top:2px solid}
-.stage .hint{position:absolute;right:16px;bottom:16px;font-family:var(--sans);font-size:12px;color:#8C9A91}
-.stage .badge{position:absolute;right:16px;top:16px;font-family:var(--sans);font-size:12px;color:#C9D3C5;border:1px solid #3A4A40;border-radius:4px;padding:4px 8px;background:rgba(21,32,26,.7)}
+.stage .legend i{width:10px;height:10px;display:inline-block}
+.stage .legend i.dash{height:0;width:18px;border-top:1.5px dashed #222}
+.stage .legend i.line{height:0;width:18px;border-top:2.5px solid}
+.stage .hint{position:absolute;right:38px;bottom:38px;font-family:var(--sans);font-size:13px;color:var(--ink-2)}
+.stage .badge{position:absolute;right:38px;top:36px;font-family:var(--sans);font-size:13px;color:var(--ink-2)}
 
-.steps{padding:0 40px 0 44px;border-left:1px solid var(--rule)}
-.step{min-height:92vh;padding:72px 0 40px;max-width:34em;display:flex;flex-direction:column;justify-content:center}
+.steps{padding:0 48px 0 40px}
+.step{min-height:92vh;padding:72px 0 40px;max-width:33em;display:flex;flex-direction:column;justify-content:center}
 .step:first-child{min-height:calc(100vh - 49px);padding-top:40px}
-.step .num{font-family:var(--sans);font-size:14px;color:var(--teal);font-weight:600;margin:0 0 6px}
-.step h2{font-weight:500;font-size:32px;line-height:1.2;margin:0 0 16px}
-.step h1{font-weight:500;font-size:clamp(40px,4.6vw,60px);line-height:1.06;margin:0 0 22px;letter-spacing:-.01em}
-.step p{margin:0 0 14px}
-.lede{font-size:21px;line-height:1.5;color:var(--ink)}
-.small{font-size:15px;color:var(--ink-2)}
-.note{font-family:var(--sans);font-size:14px;line-height:1.5;color:var(--ink-2);border-left:3px solid var(--blossom);padding:4px 0 4px 12px;margin:10px 0 18px}
+.step .num{font-family:var(--sans);font-size:14px;color:var(--ink-2);font-weight:600;margin:0 0 4px}
+.step h2{font-weight:600;font-size:27px;line-height:1.25;margin:0 0 14px}
+.step h1{font-weight:600;font-size:clamp(36px,3.6vw,48px);line-height:1.15;margin:0 0 20px}
+.step p{margin:0 0 14px;text-align:justify;hyphens:auto}
+.lede{font-size:20px;line-height:1.55}
+.small{font-size:16px;color:var(--ink-2)}
+.note{font-size:15.5px;line-height:1.5;color:var(--ink-2);border-top:1px solid var(--rule);border-bottom:1px solid var(--rule);padding:10px 0;margin:14px 0 18px;font-style:italic}
 
-/* controls */
-.ctl{font-family:var(--sans);font-size:15px;margin:18px 0 6px}
-.ctl label,.ctl .lab{display:flex;justify-content:space-between;gap:12px;font-weight:500;margin-bottom:6px}
-.ctl output{font-variant-numeric:tabular-nums;color:var(--teal);font-weight:600}
-input[type=range]{width:100%;accent-color:var(--teal);height:28px}
-.seg{display:inline-flex;border:1px solid var(--ink);border-radius:6px;overflow:hidden}
-.seg button{font:500 15px var(--sans);border:0;background:transparent;color:var(--ink);padding:8px 16px;cursor:pointer}
-.seg button[aria-pressed=true]{background:var(--ink);color:var(--paper)}
-.check{display:flex;gap:10px;align-items:flex-start;font-family:var(--sans);font-size:15px;margin:14px 0}
-.check input{width:18px;height:18px;accent-color:var(--teal);margin-top:2px}
-.btn{font:600 15px var(--sans);background:var(--ink);color:var(--paper);border:0;border-radius:6px;padding:10px 16px;cursor:pointer}
+/* controles */
+.ctl{font-family:var(--sans);font-size:15.5px;margin:18px 0 6px}
+.ctl label,.ctl .lab{display:flex;justify-content:space-between;gap:12px;font-weight:600;margin-bottom:6px}
+.ctl output{font-variant-numeric:lining-nums tabular-nums;color:var(--accent);font-weight:600}
+input[type=range]{width:100%;accent-color:var(--accent);height:26px}
+.seg{display:inline-flex;border:1px solid var(--ink-2);border-radius:3px;overflow:hidden}
+.seg button{font:400 15.5px var(--sans);border:0;background:#fff;color:var(--ink);padding:6px 16px;cursor:pointer}
+.seg button + button{border-left:1px solid var(--ink-2)}
+.seg button[aria-pressed=true]{background:var(--accent);color:#fff}
+.check{display:flex;gap:10px;align-items:flex-start;font-family:var(--sans);font-size:15.5px;margin:14px 0}
+.check input{width:16px;height:16px;accent-color:var(--accent);margin-top:3px}
+.btn{font:600 15px var(--sans);background:#fff;color:var(--accent);border:1px solid var(--accent);border-radius:3px;padding:8px 16px;cursor:pointer}
+.btn:hover{background:var(--accent);color:#fff}
 .btn:disabled{opacity:.6;cursor:progress}
 
-/* data readouts */
-.readout{font-family:var(--sans);font-size:15px;display:grid;grid-template-columns:1fr auto;gap:6px 18px;margin:14px 0;padding:14px 0;border-top:1px solid var(--rule);border-bottom:1px solid var(--rule)}
-.readout dt{color:var(--ink-2)}
-.readout dd{margin:0;text-align:right;font-variant-numeric:tabular-nums;font-weight:600}
-table.vt{width:100%;border-collapse:collapse;font-family:var(--sans);font-size:14.5px;margin:12px 0;font-variant-numeric:tabular-nums}
-table.vt th{text-align:right;font-weight:500;color:var(--ink-2);padding:6px 4px;border-bottom:1px solid var(--ink)}
+/* datos, estilo tabla científica */
+.readout{font-family:var(--sans);font-size:15.5px;display:grid;grid-template-columns:1fr auto;gap:5px 18px;margin:14px 0;padding:10px 0;border-top:1.5px solid var(--rule-strong);border-bottom:1.5px solid var(--rule-strong)}
+.readout dt{color:var(--ink)}
+.readout dd{margin:0;text-align:right;font-variant-numeric:lining-nums tabular-nums;font-weight:600}
+table.vt{width:100%;border-collapse:collapse;font-family:var(--sans);font-size:15px;margin:12px 0;font-variant-numeric:lining-nums tabular-nums;border-top:1.5px solid var(--rule-strong);border-bottom:1.5px solid var(--rule-strong)}
+table.vt th{text-align:right;font-weight:600;color:var(--ink);padding:6px 4px;border-bottom:1px solid var(--rule-strong)}
 table.vt th:first-child,table.vt td:first-child{text-align:left}
-table.vt td{text-align:right;padding:7px 4px;border-bottom:1px solid var(--rule)}
-.pos{color:#8A5A12}.neg{color:#8C2F3B}
+table.vt td{text-align:right;padding:5px 4px}
+.pos,.neg{color:var(--ink)}
 canvas.chart{width:100%;height:170px;display:block;margin:8px 0 4px}
-.gpair{display:grid;grid-template-columns:1fr 1fr;gap:14px;font-family:var(--sans);font-size:14px;margin:14px 0}
+.gpair{display:grid;grid-template-columns:1fr 1fr;gap:16px;font-family:var(--sans);font-size:15px;margin:14px 0}
 .gpair div{border-top:3px solid;padding-top:8px}
-.gpair b{display:block;font-size:15px;margin-bottom:4px}
-.big{font-family:var(--serif);font-size:44px;line-height:1.05;font-weight:500;font-variant-numeric:tabular-nums}
-.chain{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:16px 0}
-.chain div{font-family:var(--sans);font-size:14px;color:var(--ink-2)}
-.chain .big{font-size:34px;color:var(--ink);display:block}
-.formula{font-family:var(--sans);font-size:14px;color:var(--ink-2);background:var(--paper-2);border-radius:6px;padding:10px 12px}
-ol.routes{font-family:var(--sans);font-size:15px;padding-left:22px;margin:10px 0}
+.gpair b{display:block;font-size:15.5px;margin-bottom:4px;font-weight:600}
+.big{font-family:var(--serif);font-size:36px;line-height:1.1;font-weight:500;font-variant-numeric:lining-nums tabular-nums}
+.chain{display:grid;grid-template-columns:repeat(3,1fr);gap:0;margin:16px 0;border-top:1.5px solid var(--rule-strong);border-bottom:1.5px solid var(--rule-strong)}
+.chain div{font-family:var(--sans);font-size:14.5px;color:var(--ink-2);padding:12px 12px 12px 0}
+.chain div + div{padding-left:14px;border-left:1px solid var(--rule)}
+.chain .big{font-size:32px;color:var(--ink);display:block}
+.formula{font-family:var(--serif);font-style:italic;font-size:16.5px;color:var(--ink);text-align:center;padding:6px 0;margin:12px 0}
+ol.routes{font-size:17px;padding-left:24px;margin:10px 0}
 ol.routes li{margin:4px 0}
 
-/* full-width sections */
-.wide{padding:96px 24px;border-top:1px solid var(--rule)}
-.wrap{max-width:1080px;margin:0 auto}
-.wide h2{font-weight:500;font-size:40px;line-height:1.15;margin:0 0 18px;max-width:22em}
-.wide .intro{font-size:21px;max-width:36em;margin:0 0 40px}
-.compare{display:grid;grid-template-columns:1fr 1fr;gap:28px;margin:0 0 20px}
-.compare > div{padding:22px 24px;border-radius:8px}
-.compare .old{background:var(--paper-2)}
-.compare .new{background:var(--ink);color:var(--paper)}
-.compare h3{font-family:var(--sans);font-size:17px;font-weight:600;margin:0 0 12px}
-.compare ol{margin:0;padding-left:20px;font-size:17px}
-.compare li{margin:4px 0}
-.compare p{margin:14px 0 0;font-size:16px}
+/* secciones a ancho completo */
+.wide{padding:88px 28px;border-top:1px solid var(--rule)}
+.wrap{max-width:1000px;margin:0 auto}
+.wide h2{font-weight:600;font-size:34px;line-height:1.2;margin:0 0 16px}
+.wide .intro{font-size:20px;line-height:1.6;max-width:38em;margin:0 0 40px}
+.compare{display:grid;grid-template-columns:1fr 1fr;gap:0;margin:0 0 20px;border-top:1.5px solid var(--rule-strong);border-bottom:1.5px solid var(--rule-strong)}
+.compare > div{padding:18px 24px 20px 0}
+.compare > div + div{padding-left:24px;border-left:1px solid var(--rule)}
+.compare h3{font-family:var(--sans);font-size:17px;font-weight:600;margin:0 0 10px}
+.compare ol{margin:0;padding-left:22px;font-size:17.5px}
+.compare li{margin:3px 0}
+.compare p{margin:12px 0 0;font-size:17.5px;font-style:italic}
 .scale{display:grid;grid-template-columns:1.1fr .9fr;gap:48px;align-items:start}
-.scale .panel{background:var(--ink);color:var(--paper);border-radius:8px;padding:26px}
-.scale .panel .ctl output{color:var(--pist)}
-.scale .panel .big{font-size:56px;color:#fff}
-.scale .panel .small{color:#BAC6B7}
-.why{display:grid;grid-template-columns:repeat(3,1fr);gap:32px;margin:48px 0 0}
-.why h3{font-size:21px;font-weight:600;margin:0 0 8px;line-height:1.3}
-.why p{margin:0;font-size:17px}
-.ods{display:grid;grid-template-columns:repeat(5,1fr);gap:0;margin-top:48px;border-top:1px solid var(--ink)}
-.ods div{padding:14px 14px 0 0;font-family:var(--sans);font-size:14px;color:var(--ink-2)}
-.ods b{display:block;font-family:var(--serif);font-size:24px;color:var(--ink);font-weight:500}
-.years{display:grid;grid-template-columns:repeat(4,1fr);gap:0;border-top:2px solid var(--ink)}
-.years > div{padding:16px 18px 0 0;border-right:1px solid var(--rule);margin-right:18px}
+.scale h3{font-size:24px;font-weight:600;margin:0 0 12px}
+.scale p{text-align:justify;hyphens:auto}
+.scale .panel{border:1px solid var(--rule);padding:22px 24px;background:var(--paper-2)}
+.scale .panel .big{font-size:48px;color:var(--accent)}
+.scale .panel .small{font-family:var(--sans)}
+.why{display:grid;grid-template-columns:repeat(3,1fr);gap:36px;margin:52px 0 0}
+.why h3{font-size:19px;font-weight:600;margin:0 0 6px;line-height:1.3}
+.why p{margin:0;font-size:17px;text-align:justify;hyphens:auto}
+.ods{display:grid;grid-template-columns:repeat(5,1fr);gap:0;margin-top:52px;border-top:1.5px solid var(--rule-strong);border-bottom:1.5px solid var(--rule-strong)}
+.ods div{padding:12px 14px 12px 0;font-family:var(--sans);font-size:14.5px;color:var(--ink-2)}
+.ods b{display:block;font-family:var(--serif);font-size:19px;color:var(--ink);font-weight:600}
+.years{display:grid;grid-template-columns:repeat(4,1fr);gap:0;border-top:1.5px solid var(--rule-strong);border-bottom:1.5px solid var(--rule-strong)}
+.years > div{padding:14px 18px 16px 0;border-right:1px solid var(--rule);margin-right:18px}
 .years > div:last-child{border-right:0;margin-right:0}
-.years .y{font-family:var(--sans);font-weight:600;color:var(--teal);font-size:15px}
-.years h3{font-size:19px;font-weight:600;line-height:1.3;margin:4px 0 10px}
-.years ul{margin:0;padding-left:18px;font-family:var(--sans);font-size:14px;color:var(--ink-2)}
-.years li{margin:5px 0}
-.refs{font-size:15px;color:var(--ink-2);columns:2;column-gap:40px}
-.refs p{margin:0 0 10px;break-inside:avoid}
-footer{padding:36px 24px calc(env(safe-area-inset-bottom,0px) + 36px);font-family:var(--sans);font-size:14px;color:var(--ink-2);border-top:1px solid var(--rule)}
+.years .y{font-family:var(--sans);font-weight:600;color:var(--ink-2);font-size:14.5px}
+.years h3{font-size:18px;font-weight:600;line-height:1.3;margin:2px 0 10px}
+.years ul{margin:0;padding-left:18px;font-family:var(--sans);font-size:15px;color:var(--ink-2)}
+.years li{margin:4px 0}
+.refs{font-size:15.5px;color:var(--ink);columns:2;column-gap:40px}
+.refs p{margin:0 0 10px;break-inside:avoid;padding-left:1.5em;text-indent:-1.5em}
+footer{padding:28px 28px calc(env(safe-area-inset-bottom,0px) + 28px);font-family:var(--sans);font-size:14px;color:var(--ink-2);border-top:1px solid var(--rule)}
 
 @media (max-width: 900px){
   body{font-size:17px}
   .top{padding-left:16px;padding-right:16px}
   .top nav{display:none}
+  .top .sub{display:none}
   .story{display:block}
-  .stage{height:46vh;top:45px;z-index:10}
+  .stage{height:46vh;top:45px;z-index:10;padding:10px 12px;border-bottom:1px solid var(--rule)}
+  .stage .phase{left:24px;top:20px}
   .stage .phase strong{font-size:18px}
-  .stage .hint{display:none}
-  .stage .badge{display:none}
-  .steps{padding:0 18px;border-left:0}
+  .stage .legend{left:24px;bottom:20px;max-width:calc(100% - 48px);font-size:13px}
+  .stage .hint,.stage .badge{display:none}
+  .steps{padding:0 18px}
   .step{min-height:auto;padding:36px 0 44px;border-bottom:1px solid var(--rule)}
   .step:first-child{min-height:auto;padding-top:28px}
-  .step h1{font-size:36px}
+  .step h1{font-size:32px}
+  .step p{text-align:left}
   .compare,.scale,.why,.years{grid-template-columns:1fr}
-  .years > div{border-right:0;margin-right:0;border-bottom:1px solid var(--rule);padding-bottom:16px}
+  .compare > div + div{padding-left:0;border-left:0;border-top:1px solid var(--rule)}
+  .years > div{border-right:0;margin-right:0;border-bottom:1px solid var(--rule)}
+  .years > div:last-child{border-bottom:0}
   .ods{grid-template-columns:repeat(2,1fr)}
   .refs{columns:1}
-  .wide{padding:64px 18px}
-  .wide h2{font-size:30px}
+  .wide{padding:60px 18px}
+  .wide h2{font-size:28px}
 }
 </style>
 </head>
 <body>
 
 <header class="top">
-  <div><b>Carbono sin talar</b> <span style="color:var(--ink-2)">Demo de la propuesta doctoral</span></div>
+  <div><b>Carbono sin talar</b> <span class="sub" style="color:var(--ink-2)">demo de la propuesta doctoral</span></div>
   <nav aria-label="Secciones">
     <a href="#proceso">El proceso</a>
     <a href="#impacto">Impacto en la biosfera</a>
@@ -166,7 +175,7 @@ footer{padding:36px 24px calc(env(safe-area-inset-bottom,0px) + 36px);font-famil
   <div class="stage" id="stage">
     <canvas id="view" role="img" aria-label="Árbol sintético representado con gaussianas 3D; su aspecto cambia según la fase del proceso"></canvas>
     <div class="phase" id="phaseLabel"><span id="phaseSmall">Árbol sintético</span><strong id="phaseTitle">Almendro</strong></div>
-    <div class="badge">Árbol sintético con valores ilustrativos</div>
+    <div class="badge">Valores ilustrativos</div>
     <div class="legend" id="legend"></div>
     <div class="hint">Arrastra para girar el árbol</div>
   </div>
@@ -223,7 +232,7 @@ footer{padding:36px 24px calc(env(safe-area-inset-bottom,0px) + 36px);font-famil
       <p>Lo interesante para esta tesis no es la imagen, sino la forma de cada gaussiana. Compara dos de ellas, marcadas en el árbol:</p>
       <div class="gpair">
         <div style="border-color:var(--bark)"><b>En una rama</b><span id="gWood">—</span></div>
-        <div style="border-color:var(--pist)"><b>En una hoja</b><span id="gLeaf">—</span></div>
+        <div style="border-color:var(--foliage)"><b>En una hoja</b><span id="gLeaf">—</span></div>
       </div>
       <p class="small">El alargamiento es la escala mayor dividida por la intermedia. Las gaussianas de ramas tienden a ser alargadas y seguir la dirección de la rama; las de hojas, más redondeadas.</p>
     </article>
@@ -268,7 +277,7 @@ footer{padding:36px 24px calc(env(safe-area-inset-bottom,0px) + 36px);font-famil
       <h2>Validación: comparar con la geometría real</h2>
       <p>Como el árbol es sintético, su geometría exacta es conocida. En la tesis, esa referencia vendrá también de datasets con escaneo láser y, si es posible, de mediciones de campo.</p>
       <table class="vt" id="validTable" aria-label="Comparación de variables estimadas y de referencia"></table>
-      <p class="small">Pueden faltar muchas ramas finas y, aun así, el volumen cambia poco: la mayor parte de la madera está en el tronco y las ramas gruesas. En cambio, el grosor de las ramas finas tiende a sobreestimarse, lo que empuja el volumen hacia arriba.</p>
+      <p class="small">Fíjate en que pueden faltar muchas ramas finas y, aun así, el volumen cambia poco: la mayor parte de la madera está en el tronco y las ramas gruesas. En cambio, el grosor de las ramas finas tiende a sobreestimarse, lo que empuja el volumen hacia arriba.</p>
       <p>Un solo árbol no basta. La validación real repite el proceso sobre muchos árboles y resume el error con sesgo, RMSE y R².</p>
       <button type="button" class="btn" id="runVal">Validar sobre 30 árboles sintéticos</button>
       <canvas class="chart" id="scatter" style="height:220px" aria-label="Diagrama de dispersión de biomasa estimada frente a biomasa de referencia"></canvas>
@@ -283,7 +292,7 @@ footer{padding:36px 24px calc(env(safe-area-inset-bottom,0px) + 36px);font-famil
         <label for="dens">Densidad básica de la madera <output id="densOut">0,75 g/cm³</output></label>
         <input type="range" id="dens" min="0.45" max="1.05" step="0.01" value="0.75">
       </div>
-      <p class="small">Valor ilustrativo y editable. En la tesis una alternativa es tomarla de bases de datos como la Global Wood Density Database.</p>
+      <p class="small">Valor ilustrativo y editable. En la tesis se tomará de bases de datos como la Global Wood Density Database.</p>
       <div class="chain">
         <div><span class="big" id="bOut">—</span>kg de biomasa leñosa</div>
         <div><span class="big" id="cOut">—</span>kg de carbono</div>
@@ -321,7 +330,7 @@ footer{padding:36px 24px calc(env(safe-area-inset-bottom,0px) + 36px);font-famil
 
     <div class="scale" style="margin-top:56px">
       <div>
-        <h3 style="font-size:26px;font-weight:500;margin:0 0 12px">Del árbol a la hectárea</h3>
+        <h3>Del árbol a la hectárea</h3>
         <p>El cálculo por árbol se puede escalar a una plantación completa. Con el árbol de la demo y una densidad de plantación dada, este es el carbono almacenado en la madera en pie.</p>
         <p class="small">Es carbono almacenado, no una tasa anual de captura. Supone árboles similares al de la demo y usa la densidad de madera elegida en la Fase 7; la densidad de plantación es un ejemplo editable.</p>
       </div>
@@ -649,7 +658,8 @@ function camBasis(){
   const f=norm(sub(target,pos)), r=norm(cross(f,[0,1,0])), u=cross(r,f);
   return {pos,f,r,u};
 }
-const COL={bark:[154,106,69], pist:[167,201,87], lilac:[185,179,201], flag:[209,73,91], teal:[70,170,145], blossom:[244,182,194]};
+const COL={bark:[140,90,43], pist:[106,154,58], lilac:[154,154,154], flag:[213,94,0], teal:[0,158,115], blossom:[0,114,178]};
+const FONT='"Source Sans 3", "Helvetica Neue", Arial, sans-serif';
 function recolor(){
   const m=S.mode;
   for(let i=0;i<R.G.length;i++){
@@ -674,11 +684,12 @@ function project(p, B){
 function draw(){
   if(!R) return;
   ctx.setTransform(DPR,0,0,DPR,0,0);
-  ctx.fillStyle='#15201A'; ctx.fillRect(0,0,W,Hh);
+  ctx.clearRect(0,0,W,Hh);
   const B=camBasis();
   // suelo
-  ctx.strokeStyle='rgba(220,230,215,.14)'; ctx.lineWidth=1; ctx.beginPath();
-  for(let i=0;i<=64;i++){const a=i/64*2*Math.PI, P=project([Math.cos(a)*T.W*.85,0,Math.sin(a)*T.W*.85],B); i?ctx.lineTo(P.sx,P.sy):ctx.moveTo(P.sx,P.sy);} ctx.stroke();
+  ctx.beginPath();
+  for(let i=0;i<=64;i++){const a=i/64*2*Math.PI, P=project([Math.cos(a)*T.W*.85,0,Math.sin(a)*T.W*.85],B); i?ctx.lineTo(P.sx,P.sy):ctx.moveTo(P.sx,P.sy);}
+  ctx.fillStyle='rgba(0,0,0,.05)'; ctx.fill(); ctx.strokeStyle='rgba(0,0,0,.18)'; ctx.lineWidth=1; ctx.stroke();
   // gaussianas
   const G=R.G, list=[];
   for(let i=0;i<G.length;i++){
@@ -709,7 +720,7 @@ function draw(){
 function markSamples(B){
   [[sampleW,COL.bark],[sampleL,COL.pist]].forEach(([i,c])=>{
     if(i<0) return; const P=project(R.G[i].p,B);
-    ctx.strokeStyle='#fff'; ctx.lineWidth=2; ctx.beginPath(); ctx.arc(P.sx,P.sy,12,0,6.2832); ctx.stroke();
+    ctx.strokeStyle='#222222'; ctx.lineWidth=2; ctx.beginPath(); ctx.arc(P.sx,P.sy,12,0,6.2832); ctx.stroke();
     ctx.strokeStyle=`rgb(${c})`; ctx.lineWidth=2; ctx.beginPath(); ctx.arc(P.sx,P.sy,15,0,6.2832); ctx.stroke();
   });
 }
@@ -717,8 +728,8 @@ function drawCams(B){
   for(const C of R.cams){
     const P=project(C,B); if(P.z<0.3) continue;
     const Q=project(add(C,mul(norm(sub(target,C)),0.9)),B);
-    ctx.strokeStyle='rgba(244,182,194,.55)'; ctx.lineWidth=1.2; ctx.beginPath(); ctx.moveTo(P.sx,P.sy); ctx.lineTo(Q.sx,Q.sy); ctx.stroke();
-    ctx.fillStyle='#F4B6C2'; ctx.beginPath(); ctx.arc(P.sx,P.sy,3.6,0,6.2832); ctx.fill();
+    ctx.strokeStyle='rgba(0,114,178,.5)'; ctx.lineWidth=1.2; ctx.beginPath(); ctx.moveTo(P.sx,P.sy); ctx.lineTo(Q.sx,Q.sy); ctx.stroke();
+    ctx.fillStyle='#0072B2'; ctx.beginPath(); ctx.arc(P.sx,P.sy,3.8,0,6.2832); ctx.fill();
   }
 }
 function drawSkeleton(B,m){
@@ -727,20 +738,20 @@ function drawSkeleton(B,m){
   for(const {s} of segs){
     if(m==='valid'){
       const A=project(s.a,B), Bp=project(s.b,B);
-      ctx.setLineDash([4,4]); ctx.strokeStyle='rgba(255,255,255,.55)'; ctx.lineWidth=1; ctx.beginPath(); ctx.moveTo(A.sx,A.sy); ctx.lineTo(Bp.sx,Bp.sy); ctx.stroke(); ctx.setLineDash([]);
-      if(s.det){const a=project(s.ea,B), b=project(s.eb,B); ctx.strokeStyle='#F4B6C2'; ctx.lineWidth=Math.max(1.4, focal*(s.era+s.erb)/a.z*.5); ctx.globalAlpha=.8; ctx.beginPath(); ctx.moveTo(a.sx,a.sy); ctx.lineTo(b.sx,b.sy); ctx.stroke(); ctx.globalAlpha=1;}
+      ctx.setLineDash([4,4]); ctx.strokeStyle='rgba(0,0,0,.55)'; ctx.lineWidth=1; ctx.beginPath(); ctx.moveTo(A.sx,A.sy); ctx.lineTo(Bp.sx,Bp.sy); ctx.stroke(); ctx.setLineDash([]);
+      if(s.det){const a=project(s.ea,B), b=project(s.eb,B); ctx.strokeStyle='#0072B2'; ctx.lineWidth=Math.max(1.4, focal*(s.era+s.erb)/a.z*.5); ctx.globalAlpha=.75; ctx.beginPath(); ctx.moveTo(a.sx,a.sy); ctx.lineTo(b.sx,b.sy); ctx.stroke(); ctx.globalAlpha=1;}
       continue;
     }
     const a=project(s.det?s.ea:s.a,B), b=project(s.det?s.eb:s.b,B);
-    if(!s.det){ if(m==='carbon') continue; ctx.setLineDash([3,4]); ctx.strokeStyle='rgba(154,165,157,.6)'; ctx.lineWidth=1; ctx.beginPath(); ctx.moveTo(a.sx,a.sy); ctx.lineTo(b.sx,b.sy); ctx.stroke(); ctx.setLineDash([]); continue; }
-    if(m==='carbon'){ ctx.strokeStyle='#5FC3A6'; ctx.lineWidth=Math.max(1.2, focal*(s.era+s.erb)/a.z); }
-    else { ctx.strokeStyle='#F4B6C2'; ctx.lineWidth=s.level===0?3:s.level===1?2.2:1.5; }
+    if(!s.det){ if(m==='carbon') continue; ctx.setLineDash([3,4]); ctx.strokeStyle='rgba(120,120,120,.6)'; ctx.lineWidth=1; ctx.beginPath(); ctx.moveTo(a.sx,a.sy); ctx.lineTo(b.sx,b.sy); ctx.stroke(); ctx.setLineDash([]); continue; }
+    if(m==='carbon'){ ctx.strokeStyle='#009E73'; ctx.lineWidth=Math.max(1.2, focal*(s.era+s.erb)/a.z); }
+    else { ctx.strokeStyle='#0072B2'; ctx.lineWidth=s.level===0?3:s.level===1?2.2:1.5; }
     ctx.beginPath(); ctx.moveTo(a.sx,a.sy); ctx.lineTo(b.sx,b.sy); ctx.stroke();
   }
-  if(m==='skel'){ ctx.fillStyle='#fff'; for(const s of T.segs){ if(!s.det) continue; const P=project(s.eb,B); ctx.beginPath(); ctx.arc(P.sx,P.sy,1.8,0,6.2832); ctx.fill(); } }
+  if(m==='skel'){ ctx.fillStyle='#003E63'; for(const s of T.segs){ if(!s.det) continue; const P=project(s.eb,B); ctx.beginPath(); ctx.arc(P.sx,P.sy,1.8,0,6.2832); ctx.fill(); } }
 }
 function drawMeasures(B){
-  const V=R.V.est; ctx.font='500 13px "Work Sans", system-ui, sans-serif'; ctx.fillStyle='#F4F7F1'; ctx.strokeStyle='#F4F7F1'; ctx.lineWidth=1.2;
+  const V=R.V.est; ctx.font='600 14px '+FONT; ctx.fillStyle='#222222'; ctx.strokeStyle='#222222'; ctx.lineWidth=1.2;
   const off=T.W+0.5; const r=B.r;
   const g0=project(add(mul(r,off),[0,0,0]),B), g1=project(add(mul(r,off),[0,V.H,0]),B);
   ctx.beginPath(); ctx.moveTo(g0.sx,g0.sy); ctx.lineTo(g1.sx,g1.sy);
@@ -798,23 +809,23 @@ function drawHist(){
   const lo=Math.log(1), hi=Math.log(9), nb=34, bins={w:new Array(nb).fill(0), f:new Array(nb).fill(0)};
   for(const g of R.G){ if(g.cls==='n') continue; const k=Math.min(nb-1,Math.max(0,Math.floor((Math.log(g.ratio)-lo)/(hi-lo)*nb))); bins[g.cls][k]++; }
   const mx=Math.max(...bins.w,...bins.f), pl=4, pb=22, bw=(w-pl*2)/nb;
-  x.clearRect(0,0,w,h); x.font='12px "Work Sans", system-ui, sans-serif';
-  [['f','rgba(167,201,87,.85)'],['w','rgba(154,106,69,.85)']].forEach(([k,col])=>{x.fillStyle=col; bins[k].forEach((v,i)=>{const bh=(h-pb-14)*v/mx; x.fillRect(pl+i*bw+1,h-pb-bh,bw-2,bh)})});
-  x.fillStyle='#4B5B52'; [1,2,3,5,8].forEach(v=>{const px=pl+(Math.log(v)-lo)/(hi-lo)*(w-pl*2); x.fillText(String(v),px-3,h-6)});
-  const tx=pl+(Math.log(S.thr)-lo)/(hi-lo)*(w-pl*2); x.strokeStyle='#1D2B24'; x.lineWidth=2; x.beginPath(); x.moveTo(tx,4); x.lineTo(tx,h-pb); x.stroke();
-  x.fillStyle='#1D2B24'; x.fillText('umbral',tx+5,14);
-  x.fillStyle='#9A6A45'; x.fillText('madera',w-60,14); x.fillStyle='#6E8C2F'; x.fillText('hojas',w-60,30);
+  x.clearRect(0,0,w,h); x.font='13px '+FONT;
+  [['f','rgba(106,154,58,.8)'],['w','rgba(140,90,43,.85)']].forEach(([k,col])=>{x.fillStyle=col; bins[k].forEach((v,i)=>{const bh=(h-pb-14)*v/mx; x.fillRect(pl+i*bw+1,h-pb-bh,bw-2,bh)})});
+  x.fillStyle='#555555'; [1,2,3,5,8].forEach(v=>{const px=pl+(Math.log(v)-lo)/(hi-lo)*(w-pl*2); x.fillText(String(v),px-3,h-6)});
+  const tx=pl+(Math.log(S.thr)-lo)/(hi-lo)*(w-pl*2); x.strokeStyle='#222222'; x.lineWidth=2; x.beginPath(); x.moveTo(tx,4); x.lineTo(tx,h-pb); x.stroke();
+  x.fillStyle='#222222'; x.fillText('umbral',tx+5,14);
+  x.fillStyle='#8C5A2B'; x.fillText('madera',w-60,14); x.fillStyle='#557D2E'; x.fillText('hojas',w-60,30);
 }
 function drawScatter(pts){
   const c=$('scatter'); const {x,w,h}=setupCanvas(c); x.clearRect(0,0,w,h);
   const mx=Math.max(...pts.flatMap(p=>[p.t,p.e]))*1.08, pl=40, pb=28, pt=10, pr=8;
   const X=v=>pl+v/mx*(w-pl-pr), Y=v=>h-pb-v/mx*(h-pb-pt);
-  x.strokeStyle='#CFD7CB'; x.lineWidth=1; x.beginPath(); x.moveTo(X(0),Y(0)); x.lineTo(X(mx),Y(mx)); x.stroke();
-  x.strokeStyle='#1D2B24'; x.beginPath(); x.moveTo(pl,pt); x.lineTo(pl,h-pb); x.lineTo(w-pr,h-pb); x.stroke();
-  x.font='12px "Work Sans", system-ui, sans-serif'; x.fillStyle='#4B5B52';
+  x.strokeStyle='#BBBBBB'; x.lineWidth=1; x.beginPath(); x.moveTo(X(0),Y(0)); x.lineTo(X(mx),Y(mx)); x.stroke();
+  x.strokeStyle='#222222'; x.beginPath(); x.moveTo(pl,pt); x.lineTo(pl,h-pb); x.lineTo(w-pr,h-pb); x.stroke();
+  x.font='13px '+FONT; x.fillStyle='#555555';
   x.textAlign='right'; x.fillText('Referencia (kg)', w-pr, h-8); x.fillText('0',pl-6,h-pb+4); x.fillText(fmt0(mx),pl-6,pt+22);
-  x.textAlign='left'; x.fillText('Estimado (kg)', pl+8, pt+12); x.fillStyle='#8C9A91'; x.fillText('1:1', X(mx)-24, Y(mx)+16);
-  for(const p of pts){ x.fillStyle='rgba(46,125,107,.85)'; x.beginPath(); x.arc(X(p.t),Y(p.e),4,0,6.2832); x.fill(); }
+  x.textAlign='left'; x.fillText('Estimado (kg)', pl+8, pt+12); x.fillStyle='#888888'; x.fillText('1:1', X(mx)-24, Y(mx)+16);
+  for(const p of pts){ x.fillStyle='rgba(0,114,178,.85)'; x.beginPath(); x.arc(X(p.t),Y(p.e),4,0,6.2832); x.fill(); }
 }
 async function runValidation(){
   const btn=$('runVal'); btn.disabled=true; btn.textContent='Validando…';
@@ -851,13 +862,13 @@ $('runVal').addEventListener('click',runValidation);
 /* Fases al hacer scroll */
 const PH={
   natural:{small:'Árbol sintético', title:()=>SPECIES[S.species].name, legend:''},
-  acq:{small:'Fase 1 de 7', title:()=>'Adquisición', legend:'<span><i style="background:#9A6A45"></i>Madera observada</span><span><i style="background:#D1495B"></i>Madera oculta</span><span><i style="background:#F4B6C2"></i>Posiciones de cámara</span>'},
+  acq:{small:'Fase 1 de 7', title:()=>'Adquisición', legend:'<span><i style="background:#8C5A2B"></i>Madera observada</span><span><i style="background:#D55E00"></i>Madera oculta</span><span><i style="background:#0072B2"></i>Posiciones de cámara</span>'},
   gs:{small:'Fase 2 de 7', title:()=>'Reconstrucción 3DGS', legend:'<span>Cada mancha es una gaussiana 3D; los círculos marcan las dos del ejemplo</span>'},
-  ident:{small:'Fase 3 de 7', title:()=>'Identificación de gaussianas', legend:'<span><i style="background:#9A6A45"></i>Madera</span><span><i style="background:#A7C957"></i>Follaje</span><span><i style="background:#B9B3C9"></i>Ruido</span>'},
-  skel:{small:'Fase 4 de 7', title:()=>'Esqueletización', legend:'<span><i class="line" style="border-color:#F4B6C2"></i>Esqueleto recuperado</span><span><i class="dash"></i>Rama no recuperada</span>'},
-  vars:{small:'Fase 5 de 7', title:()=>'Extracción de variables', legend:'<span><i class="line" style="border-color:#F4B6C2"></i>Esqueleto</span><span><i class="line" style="border-color:#F4F7F1"></i>Medidas</span>'},
-  valid:{small:'Fase 6 de 7', title:()=>'Validación', legend:'<span><i class="line" style="border-color:#F4B6C2"></i>Estimado</span><span><i class="dash" style="border-color:#fff"></i>Geometría real</span>'},
-  carbon:{small:'Fase 7 de 7', title:()=>'Biomasa y carbono', legend:'<span><i style="background:#5FC3A6"></i>Madera que se contabiliza (sin hojas)</span>'}
+  ident:{small:'Fase 3 de 7', title:()=>'Identificación de gaussianas', legend:'<span><i style="background:#8C5A2B"></i>Madera</span><span><i style="background:#6A9A3A"></i>Follaje</span><span><i style="background:#9A9A9A"></i>Ruido</span>'},
+  skel:{small:'Fase 4 de 7', title:()=>'Esqueletización', legend:'<span><i class="line" style="border-color:#0072B2"></i>Esqueleto recuperado</span><span><i class="dash"></i>Rama no recuperada</span>'},
+  vars:{small:'Fase 5 de 7', title:()=>'Extracción de variables', legend:'<span><i class="line" style="border-color:#0072B2"></i>Esqueleto</span><span><i class="line" style="border-color:#222222"></i>Medidas</span>'},
+  valid:{small:'Fase 6 de 7', title:()=>'Validación', legend:'<span><i class="line" style="border-color:#0072B2"></i>Estimado</span><span><i class="dash" style="border-color:#222222"></i>Geometría real</span>'},
+  carbon:{small:'Fase 7 de 7', title:()=>'Biomasa y carbono', legend:'<span><i style="background:#009E73"></i>Madera que se contabiliza (sin hojas)</span>'}
 };
 const steps=[...document.querySelectorAll('.step')];
 function setPhase(i){
